@@ -1,0 +1,11 @@
+下载
+git clone https://github.com/zjw11525/MyRobot.git
+
+上传
+git status 查看变化
+git add .  添加所有更改
+git commit -m "信息"  提交更改
+推送
+git push -u origin master 推送到云
+拉取
+git pull origin master
