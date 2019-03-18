@@ -11,11 +11,10 @@ SL6=Link([0       0.0745      0              0           0     ],'standard');
 SL2.offset = -pi/2;%与实际机器人原始位置保持一致
 starobot=SerialLink([SL1 SL2 SL3 SL4 SL5 SL6],'name','standard');
 
-Q_zero = [0,0,0,0,0,0];%底座- > 抓手
+Q_zero = [0,0,0,0,-90,0];%底座- > 抓手
 Q_last = [0,0,0,0,0,0];
 %正解出原始位姿
 RobotPose = Fkine_Step(Q_zero);
-TTT = starobot.fkine(Q_zero)
 
 %原始位姿作为起点
 T1 = RobotPose;

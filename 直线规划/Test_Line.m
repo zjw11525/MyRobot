@@ -11,7 +11,7 @@ SL6=Link([0       0.0745      0              0           0     ],'standard');
 SL2.offset = -pi/2;%与实际机器人原始位置保持一致
 starobot=SerialLink([SL1 SL2 SL3 SL4 SL5 SL6],'name','standard');
 
-Q_zero = [0,0,0,0,0,0];%抓手- > 底座
+Q_zero = [0,0,0,0,-90,0];%底座 -> 抓手
 %正解出原始位姿
 RobotPose = Fkine_Step(Q_zero);
 
@@ -20,8 +20,8 @@ T1 = RobotPose;
 
 %平移
 trans = [
-    1  0  0  0;
-    0  1  0  0.2;
+    1  0  0  0.1;
+    0  1  0  -0.2;
     0  0  1  -0.2;
     0  0  0  1 ];
 
@@ -35,9 +35,9 @@ T2 = trans*RobotPose;
 % y = moveL1(T1(2,4),T2(2,4));
 % z = moveL1(T1(3,4),T2(3,4));
 %五次多项式
-x = moveL2(T1(1,4),T2(1,4));
-y = moveL2(T1(2,4),T2(2,4));
-z = moveL2(T1(3,4),T2(3,4));
+x = moveL5(T1(1,4),T2(1,4));
+y = moveL5(T1(2,4),T2(2,4));
+z = moveL5(T1(3,4),T2(3,4));
 
 for i = 1:51
     T1(1,4) = x(i);
@@ -49,7 +49,7 @@ end
 for i = 1:51
   Tj(i,:,:,:) = [x(i),y(i),z(i)];
 end
-figure(1);
+figure(2);
 plot3(Tj(:,1),Tj(:,2),Tj(:,3),'color',[1,0,0],'LineWidth',2);%输出末端轨迹
 
 Q_last = [0,0,0,0,0,0];

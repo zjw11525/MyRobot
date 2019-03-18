@@ -67,14 +67,20 @@ for i = 1 : Num
     PulseNum(j,i) =  (Distance(j,i) * Ratio(j) / 2.0);
     end
 end
-figure;
-Sizefont = 30;
-plot3(squeeze(T1(1,4,1)),squeeze(T1(2,4,1)),squeeze(T1(3,4,1)),'ok');
-hold on 
-plot3(squeeze(T1(1,4,end)),squeeze(T1(2,4,end)),squeeze(T1(3,4,end)),'ok');
-hold on 
-plot3(squeeze(T1(1,4,:)),squeeze(T1(2,4,:)),squeeze(T1(3,4,:)),'-r','LineWidth',4);
-hold on
+
+for i = 1:6
+    plot(Distance(i,:));
+    hold on;
+end
+
+% figure;
+% Sizefont = 30;
+% plot3(squeeze(T1(1,4,1)),squeeze(T1(2,4,1)),squeeze(T1(3,4,1)),'ok');
+% hold on 
+% plot3(squeeze(T1(1,4,end)),squeeze(T1(2,4,end)),squeeze(T1(3,4,end)),'ok');
+% hold on 
+% plot3(squeeze(T1(1,4,:)),squeeze(T1(2,4,:)),squeeze(T1(3,4,:)),'-r','LineWidth',4);
+% hold on
 
 % K = 0.1;
 % for i = 1 : 10 : Num
@@ -86,15 +92,15 @@ hold on
 %     hold on;
 % end
 
-
-xlabel('X (m)','FontSize',Sizefont,'FontName','Times New Roman');
-ylabel('Y (m)','FontSize',Sizefont,'FontName','Times New Roman');
-zlabel('Z (m)','FontSize',Sizefont,'FontName','Times New Roman');
-grid on 
-format short;
-Pos = roundn(PulseNum.',-4);
+% 
+% xlabel('X (m)','FontSize',Sizefont,'FontName','Times New Roman');
+% ylabel('Y (m)','FontSize',Sizefont,'FontName','Times New Roman');
+% zlabel('Z (m)','FontSize',Sizefont,'FontName','Times New Roman');
+% grid on 
+% format short;
+% Pos = roundn(PulseNum.',-4);
 %% 输出文件
-T=table(Pos);
-writetable(T,'Pos.csv');
+% T=table(Pos);
+% writetable(T,'Pos.csv');
 % B=A.' 是转置
 % B=A'  是共轭转置

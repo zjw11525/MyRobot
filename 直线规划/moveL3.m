@@ -1,4 +1,4 @@
-function Q = moveL1(PT1,PT2)
+function Q = moveL3(PT1,PT2)
 % clear;
 % clc;
 q0=PT1;
