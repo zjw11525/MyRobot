@@ -8,16 +8,13 @@ SL3=Link([0       0           0             -pi/2        0     ],'standard');
 SL4=Link([0       0.35014205  0              pi/2        0     ],'standard');
 SL5=Link([0       0           0             -pi/2        0     ],'standard');
 SL6=Link([0       0.0745      0              0           0     ],'standard');
-% SL2.offset = -pi/2;
+SL2.offset = -pi/2;
 robot=SerialLink([SL1 SL2 SL3 SL4 SL5 SL6],'name','standard');
 
-Q_zero1 = [0,-90,0,0,90,0];%底座- > 抓手
+Q_zero1 = [0,0,0,0,0,0];%底座 -> 抓手
 p1 = Fkine_Final(Q_zero1)%手写正解
-q1 = robot.ikine(p1);
+q1 = robot.ikine(p1)
 robot.plot(q1);
-
-
-
 
 
 
