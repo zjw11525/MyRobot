@@ -1,14 +1,15 @@
+function Theta = linemove(Start,End)
 %% 自适应S曲线
-clc;
-clear;
-close all;
+% clc;
+% clear;
+% close all;
 %%
-N = 500;
+N = 50;
 %% 1
-ThetaStart = 0;
-ThetaEnd = 90;
-VTheta = 90;    %1
-ATheta = 135;   %1.5
+ThetaStart = Start;
+ThetaEnd = End;
+VTheta = 0.1;    %1
+ATheta = 0.1;   %1.5
 Tf = 1.8;
 %% 2
 % ThetaStart = 90;
@@ -54,9 +55,9 @@ a = abs(a);
 % Tf = 3;
 % v = 5;
 % a = 40;
-display(Tf,'原始Tf:');
-display(v,'原始v:');
-display(a,'原始a:');
+% display(Tf,'原始Tf:');
+% display(v,'原始v:');
+% display(a,'原始a:');
 
 Theta = zeros(1,N);
 s = zeros(1,N);
@@ -64,14 +65,14 @@ sd = zeros(1,N);
 sdd = zeros(1,N);
 
 [TF,V,A,J,T] = SCurvePara(Tf, v, a);
-display(J, '新J:');
-display(TF,'新Tf:');
-display(V,'新v:');
-display(A, '新da:');
-
-display(TF-Tf,'新dTf:');
-display(V-v,'新dv:');
-display(A-a, '新da:');
+% display(J, '新J:');
+% display(TF,'新Tf:');
+% display(V,'新v:');
+% display(A, '新da:');
+% 
+% display(TF-Tf,'新dTf:');
+% display(V-v,'新dv:');
+% display(A-a, '新da:');
 
 t=linspace(0,TF,N);
 dt = t(2) - t(1);
@@ -89,23 +90,25 @@ for i = 1:N
     end
 end
 
-figure;
-plot(t,Theta)
-legend('Theta');
-xlabel('t');
-ylabel('theta');
-figure;
-plot(t,s)
-legend('s');
-xlabel('t');
-ylabel('s');
-figure;
-plot(t,sd);
-legend('s的一阶导数');
-xlabel('t');
-ylabel('s的一阶导数');
-figure
-plot(t,sdd);
-legend('s的二阶导数');
-xlabel('t');
-ylabel('s的二阶导数')
+% figure;
+% figure(1);
+% plot(t,Theta)
+% legend('Theta');
+% xlabel('t');
+% ylabel('theta');
+% figure;
+% plot(t,s)
+% legend('s');
+% xlabel('t');
+% ylabel('s');
+% figure;
+% figure(2);
+% plot(t,sd);
+% legend('s的一阶导数');
+% xlabel('t');
+% ylabel('s的一阶导数');
+% figure
+% plot(t,sdd);
+% legend('s的二阶导数');
+% xlabel('t');
+% ylabel('s的二阶导数')
