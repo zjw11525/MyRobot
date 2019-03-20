@@ -11,12 +11,12 @@ SL6=Link([0       0.0745      0              0           0     ],'standard');
 SL2.offset = -pi/2;
 robot=SerialLink([SL1 SL2 SL3 SL4 SL5 SL6],'name','standard');
 
-Q_zero1 = [10,10,10,10,10,10];%底座 -> 抓手
+Q_zero1 = [10,20,20,10,0,0];%底座 -> 抓手
 p1 = Fkine_Final(Q_zero1)%手写正解
 
 q1 = Ikine_Step(p1,Q_zero1)
 % q1 = robot.ikine(p1)
-robot.plot(q1);
+% robot.plot(q1);
 
 
 
