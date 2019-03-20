@@ -1,4 +1,4 @@
-function Theta = linemove(Start,End)
+function Theta = linemove(Start,End,V,A)
 %% 自适应S曲线
 % clc;
 % clear;
@@ -8,8 +8,8 @@ N = 50;
 %% 1
 ThetaStart = Start;
 ThetaEnd = End;
-VTheta = 0.1;    %1
-ATheta = 0.1;   %1.5
+VTheta = V;    %1
+ATheta = A;   %1.5
 Tf = 1.8;
 %% 2
 % ThetaStart = 90;
@@ -102,8 +102,9 @@ end
 % xlabel('t');
 % ylabel('s');
 % figure;
-% figure(2);
-% plot(t,sd);
+figure(1);
+plot(t,sd);
+hold on;
 % legend('s的一阶导数');
 % xlabel('t');
 % ylabel('s的一阶导数');
