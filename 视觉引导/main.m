@@ -16,7 +16,7 @@ robot.DataFormat='column';%数据格式为列，row为行；为‘row'时q0要转置-->q0’
 robot.Gravity = [0 0 -9.80];%重力方向设置
 
 
-Q_zero = [0,0,0,0,90,0];%底座 -> 抓手
+Q_zero = [0,0,0,0,0,0];%底座 -> 抓手
 Angle_Last = Q_zero + [0,90,0,0,0,0];
 pose_start = Fkine_Final(Q_zero)%正解
 
@@ -50,8 +50,8 @@ figure(3);
 q1 = zeros(50,8);%位置-->各关节为弧度值,8个单独关节运动.
 
 for i = 1:50
-    q(i,:) = q(i,:).*[-pi/180,-pi/180,-pi/180,pi/180,pi/180,pi/180];
-%     q(i,:) = q(i,:).*[pi/180,pi/180,pi/180,pi/180,pi/180,pi/180];
+%     q(i,:) = q(i,:).*[-pi/180,-pi/180,-pi/180,pi/180,pi/180,pi/180];
+    q(i,:) = q(i,:).*[pi/180,pi/180,pi/180,pi/180,pi/180,pi/180];
 %     robot.plot(q(i,:));
     q1(i,1:6) = q(i,:);
 %     frame = getframe(figure(3)); 
