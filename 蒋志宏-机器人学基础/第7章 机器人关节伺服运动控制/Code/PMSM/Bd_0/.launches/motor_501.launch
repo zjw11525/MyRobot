@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launchConfiguration type="com.ti.ccstudio.debug.core.CCELaunchType">
+<booleanAttribute key="com.ti.ccstudio.debug.core.MRU_PROGRAM_S_ONLY" value="false"/>
+<booleanAttribute key="org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND" value="false"/>
+<stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_ID" value="com.ti.ccstudio.debug.core.CCEDebugger"/>
+<stringAttribute key="CCEDebugOptions.CPU_RESOLVE_OPTION" value="exact"/>
+<stringAttribute key="org.eclipse.debug.ui.DISPLAY_NAME" value="motor_501 [Debug] - Texas Instruments XDS100v2 USB Emulator_0/C28xx"/>
+<stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_REGISTER_GROUPS" value=""/>
+<stringAttribute key="CCEDebugOptions.LOADING_OPTION" value="program"/>
+<mapAttribute key="com.ti.ccstudio.debug.core.VARIABLE_STATE"/>
+<stringAttribute key="CCEDebugOptions.DEBUG_PROPERTIES.Texas Instruments XDS100v2 USB Emulator_0/C28xx" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot; ?&gt;&#10;&lt;PropertyValues&gt;&#10;&#10;  &lt;property id=&quot;ConnectOnStartup&quot;&gt;&#10;    &lt;curValue&gt;1&lt;/curValue&gt;&#10;  &lt;/property&gt;&#10;&#10;  &lt;property id=&quot;FlashPLLCR&quot;&gt;&#10;    &lt;curValue&gt;8&lt;/curValue&gt;&#10;  &lt;/property&gt;&#10;&#10;&lt;/PropertyValues&gt;&#10;"/>
+<stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_START_MODE" value="run"/>
+<stringAttribute key="com.ti.ccstudio.debug.core.DISPLAY_NAME_FORMAT" value="motor_501 [Debug] - {0}"/>
+<stringAttribute key="CCEDebugOptions.TARGET_CONFIGURATION_OPTION" value="full"/>
+<stringAttribute key="org.eclipse.cdt.launch.MEMORY_BLOCKS" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&#13;&#10;&lt;memoryBlockExpressionList/&gt;&#13;&#10;"/>
+<stringAttribute key="com.ti.ccstudio.debug.core.MRU_PROGRAM_NAME" value="E:\workspace\workspace_501_1215\Bd_0\Release\Bd_0.out"/>
+<stringAttribute key="CCEDebugOptions.CPU_NAME" value="Texas Instruments XDS100v2 USB Emulator_0/C28xx"/>
+<stringAttribute key="com.ti.ccstudio.debug.core.MRU_MODULES" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&#13;&#10;&lt;modules&gt;&#13;&#10;&lt;module name=&quot;E:\workspace\workspace_501_1215\Bd_0\Debug\Bd_0.out&quot; time=&quot;Mon Dec 15 22:32:10 CST 2014&quot; time_long=&quot;1418653930460&quot;/&gt;&#13;&#10;&lt;module name=&quot;E:\workspace\workspace_501_1215\Bd_0\Release\Bd_0.out&quot; time=&quot;Mon Dec 15 22:32:44 CST 2014&quot; time_long=&quot;1418653964604&quot;/&gt;&#13;&#10;&lt;/modules&gt;&#13;&#10;"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="motor_501"/>
+<stringAttribute key="org.eclipse.cdt.launch.GLOBAL_VARIABLES" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&#13;&#10;&lt;globalVariableList/&gt;&#13;&#10;"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="Debug/Bd_0.out"/>
+<stringAttribute key="CCEDebugOptions.CPU_ISA" value="TMS320C28xx"/>
+<stringAttribute key="com.ti.ccstudio.debug.core.BUILD_CONFIGURATION" value="Debug"/>
+<stringAttribute key="CCEDebugOptions.TARGET_CONFIGURATION_FILE" value="E:\Mine\biyesheji\number2_test_150531\Bd_0\F28335.ccxml"/>
+</launchConfiguration>

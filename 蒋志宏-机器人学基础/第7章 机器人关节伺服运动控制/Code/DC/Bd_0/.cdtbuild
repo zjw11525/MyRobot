@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?fileVersion 3.1.0?>
+
+<ManagedProjectBuildInfo>
+<project id="Bd_0.com.ti.ccstudio.buildDefinitions.C2000.ProjectType.325571884" name="C2000" projectType="com.ti.ccstudio.buildDefinitions.C2000.ProjectType">
+<configuration artifactExtension="out" artifactName="Bd_0" description="" id="com.ti.ccstudio.buildDefinitions.C2000.Debug.250928133" name="Debug" parent="com.ti.ccstudio.buildDefinitions.C2000.Debug">
+<toolChain id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.DebugToolchain.1520499641" name="TI Code Generation Tools" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.DebugToolchain" targetTool="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.861024535">
+<option id="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS.1157484540" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS" valueType="stringList">
+<listOptionValue builtIn="false" value="DEVICE_CONFIGURATION_ID=TMS320C28XX.TMS320F28335"/>
+<listOptionValue builtIn="false" value="DEVICE_ENDIANNESS=little"/>
+<listOptionValue builtIn="false" value="OUTPUT_FORMAT=COFF"/>
+<listOptionValue builtIn="false" value="CCS_MBS_VERSION=4.2.0"/>
+<listOptionValue builtIn="false" value="LINKER_COMMAND_FILE=28335_RAM_lnk.cmd"/>
+<listOptionValue builtIn="false" value="RUNTIME_SUPPORT_LIBRARY=rts2800_fpu32.lib"/>
+<listOptionValue builtIn="false" value="OUTPUT_TYPE=executable"/>
+</option>
+<option id="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION.660411315" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION" value="5.2.6" valueType="string"/>
+<tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerDebug.1617520488" name="C2000 Compiler" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerDebug">
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.DIAG_WARNING.2049180442" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.DIAG_WARNING" valueType="stringList">
+<listOptionValue builtIn="false" value="225"/>
+</option>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.LARGE_MEMORY_MODEL.738192167" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.LARGE_MEMORY_MODEL" value="true" valueType="boolean"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.UNIFIED_MEMORY.1777547723" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.UNIFIED_MEMORY" value="true" valueType="boolean"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.SILICON_VERSION.545258271" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.SILICON_VERSION" value="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.SILICON_VERSION.28" valueType="enumerated"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.FLOAT_SUPPORT.706293730" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.FLOAT_SUPPORT" value="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.FLOAT_SUPPORT.fpu32" valueType="enumerated"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.INCLUDE_PATH.291000163" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.INCLUDE_PATH" valueType="includePath">
+<listOptionValue builtIn="false" value="&quot;E:\Mine\jiaocaichengxu\BLDC\DSP2833x_common\include&quot;"/>
+<listOptionValue builtIn="false" value="&quot;E:\Mine\jiaocaichengxu\BLDC\DSP2833x_headers\include&quot;"/>
+<listOptionValue builtIn="false" value="&quot;D:\Program Files (x86)\Texas Instruments\xdais_7_10_00_06\packages\ti\xdais&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${CG_TOOL_ROOT}/include&quot;"/>
+</option>
+</tool>
+<tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.861024535" name="C2000 Linker" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug">
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.STACK_SIZE.1637029620" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.STACK_SIZE" value="0x300" valueType="string"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.OUTPUT_FILE.652734002" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.OUTPUT_FILE" value="&quot;Bd_0.out&quot;" valueType="string"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.MAP_FILE.71567623" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.MAP_FILE" value="&quot;Bd_0.map&quot;" valueType="string"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.LIBRARY.1470843224" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.LIBRARY" valueType="libs">
+<listOptionValue builtIn="false" value="&quot;rts2800_fpu32.lib&quot;"/>
+</option>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.SEARCH_PATH.1174129384" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.SEARCH_PATH" valueType="stringList">
+<listOptionValue builtIn="false" value="&quot;${CG_TOOL_ROOT}/lib&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${CG_TOOL_ROOT}/include&quot;"/>
+</option>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.generatedLinkerCommandFiles.37066561" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.generatedLinkerCommandFiles" valueType="libs">
+<listOptionValue builtIn="false" value="&quot;$(GEN_CMDS_QUOTED)&quot;"/>
+</option>
+</tool>
+<macros expandEnvironmentMacros="true"/>
+</toolChain>
+<resourceConfiguration exclude="true" id="com.ti.ccstudio.buildDefinitions.C2000.Debug.250928133./Bd_0/Bd_0_Can.c" name="Bd_0_Can.c" rcbsApplicability="disable" resourcePath="/Bd_0/Bd_0_Can.c" toolsToInvoke="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerDebug.1617520488./Bd_0/Bd_0_Can.c">
+<tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerDebug.1617520488./Bd_0/Bd_0_Can.c" name="C2000 Compiler" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerDebug.1617520488"/>
+</resourceConfiguration>
+<resourceConfiguration exclude="false" id="com.ti.ccstudio.buildDefinitions.C2000.Debug.250928133./Bd_0/28335_RAM_lnk.cmd" name="28335_RAM_lnk.cmd" rcbsApplicability="disable" resourcePath="/DC/28335_RAM_lnk.cmd" toolsToInvoke="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.861024535./Bd_0/28335_RAM_lnk.cmd">
+<tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.861024535./Bd_0/28335_RAM_lnk.cmd" name="C2000 Linker" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.861024535"/>
+</resourceConfiguration>
+<resourceConfiguration exclude="true" id="com.ti.ccstudio.buildDefinitions.C2000.Debug.250928133./Bd_0/F28335.cmd" name="F28335.cmd" rcbsApplicability="disable" resourcePath="/DC/F28335.cmd" toolsToInvoke="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.861024535./Bd_0/F28335.cmd">
+<tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.861024535./Bd_0/F28335.cmd" name="C2000 Linker" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.861024535"/>
+</resourceConfiguration>
+</configuration>
+<configuration artifactExtension="out" artifactName="Bd_0" description="" id="com.ti.ccstudio.buildDefinitions.C2000.Release.1865549072" name="Release" parent="com.ti.ccstudio.buildDefinitions.C2000.Release">
+<toolChain id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.ReleaseToolchain.269107263" name="TI Code Generation Tools" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.ReleaseToolchain" targetTool="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerRelease.1160147729">
+<option id="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS.1065877850" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS" valueType="stringList">
+<listOptionValue builtIn="false" value="DEVICE_CONFIGURATION_ID=TMS320C28XX.TMS320F28335"/>
+<listOptionValue builtIn="false" value="DEVICE_ENDIANNESS=little"/>
+<listOptionValue builtIn="false" value="OUTPUT_FORMAT=COFF"/>
+<listOptionValue builtIn="false" value="CCS_MBS_VERSION=4.2.0"/>
+<listOptionValue builtIn="false" value="LINKER_COMMAND_FILE=28335_RAM_lnk.cmd"/>
+<listOptionValue builtIn="false" value="RUNTIME_SUPPORT_LIBRARY=rts2800_fpu32.lib"/>
+<listOptionValue builtIn="false" value="OUTPUT_TYPE=executable"/>
+</option>
+<option id="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION.1985749553" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION" value="5.2.6" valueType="string"/>
+<tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerRelease.1243234020" name="C2000 Compiler" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerRelease">
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.DIAG_WARNING.2021086354" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.DIAG_WARNING" valueType="stringList">
+<listOptionValue builtIn="false" value="225"/>
+</option>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.LARGE_MEMORY_MODEL.1150441868" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.LARGE_MEMORY_MODEL" value="true" valueType="boolean"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.UNIFIED_MEMORY.1080862600" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.UNIFIED_MEMORY" value="true" valueType="boolean"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.SILICON_VERSION.536128625" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.SILICON_VERSION" value="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.SILICON_VERSION.28" valueType="enumerated"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.FLOAT_SUPPORT.1471046209" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.FLOAT_SUPPORT" value="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.FLOAT_SUPPORT.fpu32" valueType="enumerated"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.INCLUDE_PATH.374193153" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.INCLUDE_PATH" valueType="includePath">
+<listOptionValue builtIn="false" value="&quot;${CG_TOOL_ROOT}/include&quot;"/>
+<listOptionValue builtIn="false" value="&quot;D:\Program Files (x86)\Texas Instruments\xdais_7_10_00_06\packages\ti\xdais&quot;"/>
+<listOptionValue builtIn="false" value="&quot;E:\workspace\workspace_501_1212\DSP2833x_common\include&quot;"/>
+<listOptionValue builtIn="false" value="&quot;E:\workspace\workspace_501_1212\DSP2833x_headers\include&quot;"/>
+</option>
+</tool>
+<tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerRelease.1160147729" name="C2000 Linker" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerRelease">
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.STACK_SIZE.1866318433" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.STACK_SIZE" value="0x300" valueType="string"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.OUTPUT_FILE.1776552327" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.OUTPUT_FILE" value="&quot;Bd_0.out&quot;" valueType="string"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.MAP_FILE.1599429676" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.MAP_FILE" value="&quot;Bd_0.map&quot;" valueType="string"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.LIBRARY.1385846534" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.LIBRARY" valueType="libs">
+<listOptionValue builtIn="false" value="&quot;rts2800_fpu32.lib&quot;"/>
+</option>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.SEARCH_PATH.662311249" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.SEARCH_PATH" valueType="stringList">
+<listOptionValue builtIn="false" value="&quot;${CG_TOOL_ROOT}/lib&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${CG_TOOL_ROOT}/include&quot;"/>
+</option>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.generatedLinkerCommandFiles.362350048" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.generatedLinkerCommandFiles" valueType="libs">
+<listOptionValue builtIn="false" value="&quot;$(GEN_CMDS_QUOTED)&quot;"/>
+</option>
+</tool>
+<macros expandEnvironmentMacros="true"/>
+</toolChain>
+<resourceConfiguration exclude="true" id="com.ti.ccstudio.buildDefinitions.C2000.Release.1865549072./Bd_0/Bd_0_Can.c" name="Bd_0_Can.c" rcbsApplicability="disable" resourcePath="/Bd_0/Bd_0_Can.c" toolsToInvoke="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerRelease.1243234020./Bd_0/Bd_0_Can.c">
+<tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerRelease.1243234020./Bd_0/Bd_0_Can.c" name="C2000 Compiler" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerRelease.1243234020"/>
+</resourceConfiguration>
+<resourceConfiguration exclude="true" id="com.ti.ccstudio.buildDefinitions.C2000.Release.1865549072./Bd_0/28335_RAM_lnk.cmd" name="28335_RAM_lnk.cmd" rcbsApplicability="disable" resourcePath="/DC/28335_RAM_lnk.cmd" toolsToInvoke="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerRelease.1160147729./Bd_0/28335_RAM_lnk.cmd">
+<tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerRelease.1160147729./Bd_0/28335_RAM_lnk.cmd" name="C2000 Linker" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerRelease.1160147729"/>
+</resourceConfiguration>
+</configuration>
+</project>
+</ManagedProjectBuildInfo>

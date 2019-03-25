@@ -1,0 +1,1 @@
+将两个文件放入同一目录下，运行ForceToMotion.m即可

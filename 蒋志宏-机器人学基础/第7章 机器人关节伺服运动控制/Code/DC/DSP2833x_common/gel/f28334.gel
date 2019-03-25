@@ -1,0 +1,2951 @@
+/********************************************************************/
+/* f28334.gel                                                       */
+/* Version 3.30.2                                                   */
+/*                                                                  */
+/* This GEL file is to be used with the TMS320F28334 DSP.           */
+/* Changes may be required to support specific hardware designs.    */
+/*                                                                  */
+/* Code Composer Studio supports six reserved GEL functions that    */
+/* automatically get executed if they are defined. They are:        */
+/*                                                                  */
+/* StartUp()              - Executed whenever CCS is invoked        */
+/* OnReset()              - Executed after Debug->Reset CPU         */
+/* OnRestart()            - Executed after Debug->Restart           */
+/* OnPreFileLoaded()      - Executed before File->Load Program      */
+/* OnFileLoaded()         - Executed after File->Load Program       */
+/* OnTargetConnect()      - Executed after Debug->Connect           */
+/*                                                                  */
+/********************************************************************/
+
+StartUp()
+{
+
+/* The next line automatically loads the .gel file that comes   */
+/* with the DSP2833x Peripheral Header Files download.  To use, */
+/* uncomment, and adjust the directory path as needed.          */
+//  GEL_LoadGel("c:\\CCStudio_v3.3\\cc\\gel\\DSP2833x_Peripheral.gel");
+}
+
+OnReset(int nErrorCode)
+{
+    C28x_Mode();
+    Unlock_CSM();
+    ADC_Cal();
+}
+
+OnRestart(int nErrorCode)
+{
+/* CCS will call OnRestart() when you do a Debug->Restart and   */
+/* after you load a new file.  Between running interrupt based  */
+/* programs, this function will clear interrupts and help keep  */
+/* the processor from going off into invalid memory.            */
+     C28x_Mode();
+     IER = 0;
+     IFR = 0;
+     ADC_Cal();
+}
+
+int TxtOutCtl=0;
+OnPreFileLoaded()
+{
+    XINTF_Enable();
+    if (TxtOutCtl==0)
+    {
+     GEL_TextOut("\nNOTES:\nGel will enable XINTFx16 during Debug only.\nEnable XINTF in code prior to use.");
+     GEL_TextOut("\nFPU Registers can be found via GEL->Watch FPU Registers."); 
+	 TxtOutCtl=1;
+    }
+}
+
+OnFileLoaded(int nErrorCode, int bSymbolsOnly)
+{
+    ADC_Cal();
+}
+
+OnTargetConnect()
+{
+    C28x_Mode();
+    F28334_Memory_Map();            /* Initialize the CCS memory map */
+
+/* Check to see if CCS has been started-up with the DSP already */
+/* running in real-time mode.  The user can add whatever        */
+/* custom initialization stuff they want to each case.          */
+
+    if (GEL_IsInRealtimeMode())     /* Do real-time mode target initialization */
+    {
+
+    }
+    else                            /* Do stop-mode target initialization */
+    {
+        GEL_Reset();                /* Reset DSP */
+    }
+
+}
+
+
+/********************************************************************/
+/* These functions are launched by the GEL_Toolbar button plugin    */
+/********************************************************************/
+GEL_Toolbar1()
+{
+    Run_Realtime_with_Reset();
+}
+GEL_Toolbar2()
+{
+    Run_Realtime_with_Restart();
+}
+GEL_Toolbar3()
+{
+    Full_Halt();
+}
+GEL_Toolbar4()
+{
+    Full_Halt_with_Reset();
+}
+
+int GEL_Toolbar5_Toggle = 0;
+GEL_Toolbar5()
+{
+    if(GEL_Toolbar5_Toggle == 0)
+    {
+        GEL_Toolbar5_Toggle = 1;
+        GEL_OpenWindow("GEL_Buttons",1,4);
+        GEL_TextOut("Button 1: Run_Realtime_with_Reset()","GEL_Buttons",0,0);
+        GEL_TextOut("Button 2: Run_Realtime_with_Restart()","GEL_Buttons",0,1);
+        GEL_TextOut("Button 3: Full_Halt()", "GEL_Buttons",0,2);
+        GEL_TextOut("Button 4: Full_Halt_with_Reset()","GEL_Buttons",0,3);
+    }
+    else
+    {
+        GEL_Toolbar5_Toggle = 0;
+        GEL_CloseWindow("GEL_Buttons");
+    }
+}
+
+
+/********************************************************************/
+/* These functions are useful to engage/dis-enagage realtime        */
+/* emulation mode during debug.  They save the user from having to  */
+/* manually perform these steps in CCS.                             */
+/********************************************************************/
+menuitem "Realtime Emulation Control";
+
+hotmenu Run_Realtime_with_Reset()
+{
+    GEL_Reset();                /* Reset the DSP */
+    ST1 = ST1 & 0xFFFD;         /* clear DBGM bit in ST1 */
+    GEL_EnableRealtime();       /* Enable Realtime mode */
+    GEL_Run();                  /* Run the DSP */
+}
+hotmenu Run_Realtime_with_Restart()
+{
+    GEL_Restart();              /* Reset the DSP */
+    ST1 = ST1 & 0xFFFD;         /* clear DBGM bit in ST1 */
+    GEL_EnableRealtime();       /* Enable Realtime mode */
+    GEL_Run();                  /* Run the DSP */
+}
+hotmenu Full_Halt()
+{
+    GEL_DisableRealtime();      /* Disable Realtime mode */
+    GEL_Halt();                 /* Halt the DSP */
+}
+hotmenu Full_Halt_with_Reset()
+{
+    GEL_DisableRealtime();      /* Disable Realtime mode */
+    GEL_Halt();                 /* Halt the DSP */
+    GEL_Reset();                /* Reset the DSP */
+}
+
+
+/********************************************************************/
+/*                         F28334 Memory Map                        */
+/*                                                                  */
+/*   Note: M0M1MAP and VMAP signals tied high on F28334 core        */
+/*                                                                  */
+/*   0x000000 - 0x0003ff   M0 SARAM                (Prog and Data)  */
+/*   0x000400 - 0x0007ff   M1 SARAM                (Prog and Data)  */
+/*   0x000800 - 0x001fff   Peripheral Frame0 (PF0) (Data only)      */
+/*   0x004000 - 0x004fff   XINTF Zone 0            (Prog and Data)  */
+/*   0x005000 - 0x005fff   Peripheral Frame3 (PF3) (Data only)      */
+/*   0x006000 - 0x006fff   Peripheral Frame1 (PF1) (Data only)      */
+/*   0x007000 - 0x007fff   Peripheral Frame2 (PF2) (Data only)      */
+/*   0x008000 - 0x008fff   L0 SARAM                (Prog and Data)  */
+/*   0x009000 - 0x009fff   L1 SARAM                (Prog and Data)  */
+/*   0x00A000 - 0x00Afff   L2 SARAM                (Prog and Data)  */
+/*   0x00B000 - 0x00Bfff   L3 SARAM                (Prog and Data)  */
+/*   0x00C000 - 0x00Cfff   L4 SARAM                (Prog and Data)  */
+/*   0x00D000 - 0x00Dfff   L5 SARAM                (Prog and Data)  */
+/*   0x00E000 - 0x00Efff   L6 SARAM                (Prog and Data)  */
+/*   0x00F000 - 0x00Ffff   L7 SARAM                (Prog and Data)  */
+/*   0x100000 - 0x1fffff   XINTF Zone 6            (Prog and Data)  */
+/*   0x200000 - 0x2fffff   XINTF Zone 7            (Prog and Data)  */
+/*   0x320000 - 0x33ffff   Flash                   (Prog and Data)  */
+/*   0x380080 - 0x380088   ADC_cal function        (Prog and Data)  */
+/*   0x380090 - 0x380090   PARTID value            (Prog and Data)  */
+/*   0x380400 - 0x3807ff   OTP                     (Prog and Data)  */
+/*   0x3f8000 - 0x3f8fff   L0 SARAM                (Prog and Data)  */
+/*   0x3f9000 - 0x3f9fff   L1 SARAM                (Prog and Data)  */
+/*   0x3fA000 - 0x3fAfff   L2 SARAM                (Prog and Data)  */
+/*   0x3fB000 - 0x3fBfff   L3 SARAM                (Prog and Data)  */
+/*   0x3fe000 - 0x3fffff   BOOT ROM                (Prog and Data)  */
+/********************************************************************/
+menuitem "Initialize Memory Map";
+
+hotmenu F28334_Memory_Map()
+{
+    GEL_MapReset();
+    GEL_MapOn();
+
+    /* Program memory map */
+    GEL_MapAdd(0x0,0,0x400,1,1);                 /* M0 SARAM        */
+    GEL_MapAdd(0x400,0,0x400,1,1);               /* M1 SARAM        */
+    GEL_MapAdd(0x4000,0,0x1000,1,1);             /* Zone 0          */
+    GEL_MapAdd(0x8000,0,0x1000,1,1);             /* L0 SARAM        */
+    GEL_MapAdd(0x9000,0,0x1000,1,1);             /* L1 SARAM        */
+    GEL_MapAdd(0xA000,0,0x1000,1,1);             /* L2 SARAM        */
+    GEL_MapAdd(0xB000,0,0x1000,1,1);             /* L3 SARAM        */
+    GEL_MapAdd(0xC000,0,0x1000,1,1);             /* L4 SARAM        */
+    GEL_MapAdd(0xD000,0,0x1000,1,1);             /* L5 SARAM        */
+    GEL_MapAdd(0xE000,0,0x1000,1,1);             /* L6 SARAM        */
+    GEL_MapAdd(0xF000,0,0x1000,1,1);             /* L7 SARAM        */
+    GEL_MapAdd(0x100000,0,0x100000,1,1);         /* Zone 6          */
+    GEL_MapAdd(0x200000,0,0x100000,1,1);         /* Zone 7          */
+    GEL_MapAdd(0x320000,0,0x20000,1,0);          /* FLASH           */
+    GEL_MapAdd(0x380080,0,0x00009,1,0);          /* ADC_cal function*/
+    GEL_MapAdd(0x380090,0,0x00001,1,0);          /* PARTID value    */
+    GEL_MapAdd(0x380400,0,0x00400,1,0);          /* OTP             */
+    GEL_MapAdd(0x3f8000,0,0x1000,1,1);           /* L0 SARAM Mirror */
+    GEL_MapAdd(0x3f9000,0,0x1000,1,1);           /* L1 SARAM Mirror */
+    GEL_MapAdd(0x3fA000,0,0x1000,1,1);           /* L2 SARAM Mirror */
+    GEL_MapAdd(0x3fb000,0,0x1000,1,1);           /* L3 SARAM Mirror */
+    GEL_MapAdd(0x3fe000,0,0x2000,1,0);           /* BOOT ROM        */
+
+    /* Data memory map */
+    GEL_MapAdd(0x000,1,0x400,1,1);               /* M0 SARAM        */
+    GEL_MapAdd(0x400,1,0x400,1,1);               /* M1 SARAM        */
+    GEL_MapAdd(0x800,1,0x1800,1,1);              /* PF0             */
+    GEL_MapAdd(0x4000,1,0x1000,1,1);             /* Zone 0          */
+    GEL_MapAdd(0x5000,1,0x1000,1,1);             /* PF3             */
+    GEL_MapAdd(0x6000,1,0x1000,1,1);             /* PF1             */
+    GEL_MapAddStr(0x7000,1,0x1000,"R|W|AS2",0);  /* PF2             */
+    GEL_MapAdd(0x8000,1,0x1000,1,1);             /* L0 SARAM        */
+    GEL_MapAdd(0x9000,1,0x1000,1,1);             /* L1 SARAM        */
+    GEL_MapAdd(0xA000,1,0x1000,1,1);             /* L2 SARAM        */
+    GEL_MapAdd(0xB000,1,0x1000,1,1);             /* L3 SARAM        */
+    GEL_MapAdd(0xC000,1,0x1000,1,1);             /* L4 SARAM        */
+    GEL_MapAdd(0xD000,1,0x1000,1,1);             /* L5 SARAM        */
+    GEL_MapAdd(0xE000,1,0x1000,1,1);             /* L6 SARAM        */
+    GEL_MapAdd(0xF000,1,0x1000,1,1);             /* L7 SARAM        */
+    GEL_MapAdd(0x100000,1,0x100000,1,1);         /* Zone 6          */
+    GEL_MapAdd(0x200000,1,0x100000,1,1);         /* Zone 7          */
+    GEL_MapAdd(0x320000,1,0x20000,1,0);          /* FLASH           */
+    GEL_MapAdd(0x380080,1,0x00009,1,0);          /* ADC_cal function*/
+    GEL_MapAdd(0x380090,1,0x00001,1,0);          /* PARTID value    */
+    GEL_MapAdd(0x380400,1,0x00400,1,0);          /* OTP             */
+    GEL_MapAdd(0x3f8000,1,0x1000,1,1);           /* L0 SARAM Mirror */
+    GEL_MapAdd(0x3f9000,1,0x1000,1,1);           /* L1 SARAM Mirror */
+    GEL_MapAdd(0x3fA000,1,0x1000,1,1);           /* L2 SARAM Mirror */
+    GEL_MapAdd(0x3fb000,1,0x1000,1,1);           /* L3 SARAM Mirror */
+    GEL_MapAdd(0x3fe000,1,0x2000,1,0);           /* BOOT ROM        */
+}
+
+
+/********************************************************************/
+/* The ESTOP0 fill functions are useful for debug.  They fill the   */
+/* RAM with software breakpoints that will trap runaway code.       */
+/********************************************************************/
+hotmenu Fill_F28334_RAM_with_ESTOP0()
+{
+    GEL_MemoryFill(0x000000,1,0x000800,0x7625);      /* Fill M0/M1  */
+    GEL_MemoryFill(0x008000,1,0x002000,0x7625);      /* Fill L0/L1  */
+    GEL_MemoryFill(0x00A000,1,0x002000,0x7625);      /* Fill L2/L3  */
+    GEL_MemoryFill(0x00C000,1,0x002000,0x7625);      /* Fill L4/L5  */
+    GEL_MemoryFill(0x00E000,1,0x002000,0x7625);      /* Fill L6/L7  */
+}
+
+
+/********************************************************************/
+menuitem "Watchdog";
+hotmenu Disable_WD()
+{
+    *0x7029 = *0x7029 | 0x0068;                /* Set the WDDIS bit */
+    *0x7025 = 0x0055;                          /* Service the WD    */
+    *0x7025 = 0x00AA;                          /*  once to be safe. */
+    GEL_TextOut("\nWatchdog Timer Disabled");
+}
+
+
+/********************************************************************/
+menuitem "Code Security Module"
+hotmenu Unlock_CSM()
+{
+    /* Perform dummy reads of the password locations */
+    XAR0 = *0x33FFF8;
+    XAR0 = *0x33FFF9;
+    XAR0 = *0x33FFFA;
+    XAR0 = *0x33FFFB;
+    XAR0 = *0x33FFFC;
+    XAR0 = *0x33FFFD;
+    XAR0 = *0x33FFFE;
+    XAR0 = *0x33FFFF;
+
+    /* Write passwords to the KEY registers.  0xFFFF's are dummy passwords.
+       User should replace them with the correct password for their DSP */
+    *0xAE0 = 0xFFFF;
+    *0xAE1 = 0xFFFF;
+    *0xAE2 = 0xFFFF;
+    *0xAE3 = 0xFFFF;
+    *0xAE4 = 0xFFFF;
+    *0xAE5 = 0xFFFF;
+    *0xAE6 = 0xFFFF;
+    *0xAE7 = 0xFFFF;
+}
+
+
+/********************************************************************/
+menuitem "Addressing Modes";
+hotmenu C28x_Mode()
+{
+    ST1 = ST1 & (~0x0100);      /*   AMODE = 0  */
+    ST1 = ST1 | 0x0200;         /* OBJMODE = 1  */
+}
+hotmenu C24x_Mode()
+{
+    ST1 = ST1 | 0x0100;         /*   AMODE = 1  */
+    ST1 = ST1 | 0x0200;         /* OBJMODE = 1  */
+}
+hotmenu C27x_Mode()
+{
+    ST1 = ST1 & (~0x0100);      /*   AMODE = 0  */
+    ST1 = ST1 & (~0x0200);      /* OBJMODE = 0  */
+}
+
+
+/********************************************************************/
+/*                            PLL Ratios                            */
+/*                                                                  */
+/* The following table describes the PLL clocking ratios (0..10)    */
+/*                                                                  */
+/*   Ratio        CLKIN         Description                         */
+/*   -----    --------------    ------------                        */
+/*     0      OSCCLK/2          PLL bypassed                        */
+/*     1      (OSCCLK * 1)/2    15 Mhz for 30 Mhz CLKIN             */
+/*     2      (OSCCLK * 2)/2    30 Mhz for 30 Mhz CLKIN             */
+/*     3      (OSCCLK * 3)/2    45 Mhz for 30 Mhz CLKIN             */
+/*     4      (OSCCLK * 4)/2    60 Mhz for 30 Mhz CLKIN             */
+/*     5      (OSCCLK * 5)/2    75 Mhz for 30 Mhz CLKIN             */
+/*     6      (OSCCLK * 6)/2    90 Mhz for 30 Mhz CLKIN             */
+/*     7      (OSCCLK * 7)/2    105 Mhz for 30 Mhz CLKIN            */
+/*     8      (OSCCLK * 8)/2    120 Mhz for 30 Mhz CLKIN            */
+/*     9      (OSCCLK * 9)/2    135 Mhz for 30 Mhz CLKIN            */
+/*    10      (OSCCLK * 10)/2   150 Mhz for 30 Mhz CLKIN            */
+/********************************************************************/
+menuitem "Set PLL Ratio";
+
+hotmenu Bypass()
+{
+    DIVSEL_div2();     /* DIVSEL = 1/2                      */
+    *0x7021 = 0;       /* CLKIN = OSCCLK/2, PLL is bypassed */
+    PLL_Wait();
+}
+hotmenu OSCCLK_x1_divided_by_2()
+{
+    DIVSEL_div2();    /* DIVSEL = 1/2           */
+    *0x7021 = 1;      /* CLKIN = (OSCCLK * 1)/2 */
+    PLL_Wait();
+}
+hotmenu OSCCLK_x2_divided_by_2()
+{
+    DIVSEL_div2();    /* DIVSEL = 1/2           */
+    *0x7021 = 2;      /* CLKIN = (OSCCLK * 2)/2 */
+    PLL_Wait();
+}
+hotmenu OSCCLK_x3_divided_by_2()
+{
+    DIVSEL_div2();    /* DIVSEL = 1/2           */
+    *0x7021 = 3;      /* CLKIN = (OSCCLK * 3)/2 */
+    PLL_Wait();
+}
+hotmenu OSCCLK_x4_divided_by_2()
+{
+    DIVSEL_div2();    /* DIVSEL = 1/2           */
+    *0x7021 = 4;      /* CLKIN = (OSCCLK * 4)/2 */
+    PLL_Wait();
+}
+hotmenu OSCCLK_x5_divided_by_2()
+{
+    DIVSEL_div2();    /* DIVSEL = 1/2           */
+    *0x7021 = 5;      /* CLKIN = (OSCCLK * 5)/2 */
+    PLL_Wait();
+}
+hotmenu OSCCLK_x6_divided_by_2()
+{
+    DIVSEL_div2();    /* DIVSEL = 1/2           */
+    *0x7021 = 6;      /* CLKIN = (OSCCLK * 6)/2 */
+    PLL_Wait();
+}
+hotmenu OSCCLK_x7_divided_by_2()
+{
+    DIVSEL_div2();    /* DIVSEL = 1/2           */
+    *0x7021 = 7;      /* CLKIN = (OSCCLK * 7)/2 */
+    PLL_Wait();
+}
+hotmenu OSCCLK_x8_divided_by_2()
+{
+    DIVSEL_div2();    /* DIVSEL = 1/2           */
+    *0x7021 = 8;      /* CLKIN = (OSCCLK * 8)/2 */
+    PLL_Wait();
+}
+hotmenu OSCCLK_x9_divided_by_2()
+{
+    DIVSEL_div2();    /* DIVSEL = 1/2           */
+    *0x7021 = 9;      /* CLKIN = (OSCCLK * 9)/2 */
+    PLL_Wait();
+}
+hotmenu OSCCLK_x10_divided_by_2()
+{
+    DIVSEL_div2();    /* DIVSEL = 1/2           */
+    *0x7021 = 10;     /* CLKIN = (OSCCLK * 10)/2 */
+    PLL_Wait();
+}
+// hotmenu OSCCLK_x1_divided_by_1()
+// {
+//     DIVSEL_div1();    /* DIVSEL = 1/1           */
+//     *0x7021 = 1;      /* CLKIN = (OSCCLK * 1)/1 */
+//     PLL_Wait();
+// }
+// hotmenu OSCCLK_x2_divided_by_1()
+// {
+//     DIVSEL_div1();    /* DIVSEL = 1/1           */
+//     *0x7021 = 2;      /* CLKIN = (OSCCLK * 2)/1 */
+//     PLL_Wait();
+// }
+// hotmenu OSCCLK_x3_divided_by_1()
+// {
+//     DIVSEL_div1();    /* DIVSEL = 1/1           */
+//     *0x7021 = 3;      /* CLKIN = (OSCCLK * 3)/1 */
+//     PLL_Wait();
+// }
+// hotmenu OSCCLK_x4_divided_by_1()
+// {
+//     DIVSEL_div1();    /* DIVSEL = 1/1           */
+//     *0x7021 = 4;      /* CLKIN = (OSCCLK * 4)/1 */
+//     PLL_Wait();
+// }
+// hotmenu OSCCLK_x5_divided_by_1()
+// {
+//     DIVSEL_div1();    /* DIVSEL = 1/1           */
+//     *0x7021 = 5;      /* CLKIN = (OSCCLK * 5)/1 */
+//     PLL_Wait();
+// }
+// hotmenu OSCCLK_x6_divided_by_1()
+// {
+//     DIVSEL_div1();    /* DIVSEL = 1/1           */
+//     *0x7021 = 6;      /* CLKIN = (OSCCLK * 6)/1 */
+//     PLL_Wait();
+// }
+// hotmenu OSCCLK_x7_divided_by_1()
+// {
+//     DIVSEL_div1();    /* DIVSEL = 1/1           */
+//     *0x7021 = 7;      /* CLKIN = (OSCCLK * 7)/1 */
+//     PLL_Wait();
+// }
+// hotmenu OSCCLK_x8_divided_by_1()
+// {
+//     DIVSEL_div1();    /* DIVSEL = 1/1           */
+//     *0x7021 = 8;      /* CLKIN = (OSCCLK * 8)/1 */
+//     PLL_Wait();
+// }
+// hotmenu OSCCLK_x9_divided_by_1()
+// {
+//     DIVSEL_div1();    /* DIVSEL = 1/1           */
+//     *0x7021 = 9;      /* CLKIN = (OSCCLK * 9)/1 */
+//     PLL_Wait();
+// }
+// hotmenu OSCCLK_x10_divided_by_1()
+// {
+//     DIVSEL_div1();    /* DIVSEL = 1/1           */
+//     *0x7021 = 10;     /* CLKIN = (OSCCLK * 10)/1 */
+//     PLL_Wait();
+// }
+
+
+
+/********************************************************************/
+/* For F2833x devices, DIVSEL is 1/4 by default.  Switch it to 1/2  */
+/********************************************************************/
+
+DIVSEL_div2()
+{
+    int temp;
+    int PLLSTS;
+
+    PLLSTS = 0x7011;
+
+    temp  = *PLLSTS; 
+    temp &=  0xFE7F;   /* Clear bits 7 & 8 */
+    temp |= 2 << 7;    /* Set bit 8        */
+    *PLLSTS = temp;    /* Switch to 1/2    */
+}
+
+
+
+/********************************************************************/
+/* For F2833x devices, DIVSEL is 1/4 by default.  Switch it to /1   */
+/********************************************************************/
+
+DIVSEL_div1()
+{
+    int temp;
+    int PLLSTS;
+
+    PLLSTS = 0x7011;
+    
+    DIVSEL_div2();     /* First switch DIVSEL to 1/2 and wait */
+    wait();  
+    temp  = *PLLSTS; 
+    temp |= 3 << 7;    /* Set bits 7 & 8   */
+    *PLLSTS = temp;    /* Switch to 1/2    */
+}
+
+wait()
+{
+    int delay = 0;
+    for (delay = 0; delay <= 5; delay ++)
+    {}
+}
+
+/********************************************************************/
+/* For F2833x devices, check the PLLOCKS bit for PLL lock.          */
+/********************************************************************/
+PLL_Wait()
+{
+    int PLLSTS;
+    int delay = 0;
+
+    PLLSTS = 0x7011;
+    
+    
+    while ( ( (unsigned int)*PLLSTS & 0x0001) != 0x0001)
+    {
+        delay++;
+        GEL_TextOut("Waiting for PLL Lock, PLLSTS = %x\n",,,,,(unsigned int)*PLLSTS);
+    }
+    GEL_TextOut("\nPLL lock complete, PLLSTS = %x\n",,,,,(unsigned int)*PLLSTS);
+}
+
+/********************************************************************/
+/* Load the ADC Calibration values from TI OTP                      */
+/********************************************************************/
+menuitem "ADC Calibration"
+hotmenu ADC_Cal()
+{
+    /* Perform dummy reads of the password locations */
+    XAR0 = *0x33FFF8;
+    XAR0 = *0x33FFF9;
+    XAR0 = *0x33FFFA;
+    XAR0 = *0x33FFFB;
+    XAR0 = *0x33FFFC;
+    XAR0 = *0x33FFFD;
+    XAR0 = *0x33FFFE;
+    XAR0 = *0x33FFFF;
+
+    if(((*0x0AEF) & 0x0001) == 0)
+    {
+        XAR0 = *0x701C;
+        *0x701C |= 0x0008;  
+	*0x711C = *0x380083;
+        *0x711D = *0x380085;
+        *0x701C = XAR0;
+	XAR0 = 0;
+    } 
+    else
+    {
+        GEL_TextOut("\nADC Calibration not complete, device is secure"); 
+    }
+}
+
+/********************************************************************/
+/* Enable the XINTF and configure GPIOs for XINTF function          */
+/********************************************************************/
+menuitem "XINTF Enable"
+hotmenu XINTF_Enable()
+{
+
+   /* enable XINTF clock (XTIMCLK) */
+
+   *0x7020 = 0x3700;                          
+   /* GPBMUX1: XA0-XA7, XA16, XZCS0,        */
+   /*          XZCS7, XREADY, XRNW, XWE0    */
+   /* GPAMUX2: XA17-XA19, XZCS6             */
+   /* GPCMUX2: XA8-XA15                     */         
+   /* GPCMUX1: XD0-XD15                     */
+   *(unsigned long *)0x6F96 = 0xFFFFFFC0;   /* GPBMUX1 */
+   *(unsigned long *)0x6f88 = 0xFF000000;   /* GPAMUX2 */  
+   *(unsigned long *)0x6FA8 = 0x0000AAAA;   /* GPCMUX2 */  
+   *(unsigned long *)0x6FA6 = 0xAAAAAAAA;   /* GPCMUX1 */
+
+   /* Uncomment for x32 data bus            */
+   /* GPBMUX2: XD16-XD31                    */
+// *(unsigned long *)0x6F98 = 0xFFFFFFFF;   /* GPBMUX2 */ 
+   
+   /* Zone timing.  
+   /* Each zone can be configured seperately */
+   /* Uncomment the x16 or the x32 timing    */
+   /* depending on the data bus width for    */
+   /* the zone                               */
+
+   /* x16 Timing */
+   *(unsigned long *)0x0B20 = 0x0043FFFF;    /* Zone0 */
+   *(unsigned long *)0x0B2C = 0x0043FFFF;    /* Zone6 */
+   *(unsigned long *)0x0B2E = 0x0043FFFF;    /* Zone7 */
+
+   /* x32 Timing:
+// *(unsigned long *)0x0B20 = 0x0041FFFF;    /* x32 */
+// *(unsigned long *)0x0B2C = 0x0041FFFF;    /* x32 */
+// *(unsigned long *)0x0B2E = 0x0041FFFF;    /* x32 */
+ 
+}
+
+/********************************************************************/
+/* The below are used to display the symbolic names of the F28334   */
+/* memory mapped registers in the watch window. To view these       */
+/* registers, click on the GEL menu button in Code Composer Studio, */
+/* then select which registers or groups of registers you want to   */
+/* view. They will appear in the watch window under the Watch1 tab. */
+/********************************************************************/
+
+/* Add a space line to the GEL menu */
+menuitem "______________________________________";
+hotmenu __() {}
+
+/********************************************************************/
+/* A/D Converter Registers                                          */
+/********************************************************************/
+menuitem "Watch ADC Registers";
+
+hotmenu All_ADC_Regs()
+{
+    GEL_WatchAdd("*0x7100,x","ADCTRL1");
+    GEL_WatchAdd("*0x7101,x","ADCTRL2");
+    GEL_WatchAdd("*0x7102,x","ADCMAXCONV");
+    GEL_WatchAdd("*0x7103,x","ADCCHSELSEQ1");
+    GEL_WatchAdd("*0x7104,x","ADCCHSELSEQ2");
+    GEL_WatchAdd("*0x7105,x","ADCCHSELSEQ3");
+    GEL_WatchAdd("*0x7106,x","ADCCHSELSEQ4");
+    GEL_WatchAdd("*0x7107,x","ADCASEQSR");
+    GEL_WatchAdd("*0x7108,x","ADCRESULT0");
+    GEL_WatchAdd("*0x7109,x","ADCRESULT1");
+    GEL_WatchAdd("*0x710A,x","ADCRESULT2");
+    GEL_WatchAdd("*0x710B,x","ADCRESULT3");
+    GEL_WatchAdd("*0x710C,x","ADCRESULT4");
+    GEL_WatchAdd("*0x710D,x","ADCRESULT5");
+    GEL_WatchAdd("*0x710E,x","ADCRESULT6");
+    GEL_WatchAdd("*0x710F,x","ADCRESULT7");
+    GEL_WatchAdd("*0x7110,x","ADCRESULT8");
+    GEL_WatchAdd("*0x7111,x","ADCRESULT9");
+    GEL_WatchAdd("*0x7112,x","ADCRESULT10");
+    GEL_WatchAdd("*0x7113,x","ADCRESULT11");
+    GEL_WatchAdd("*0x7114,x","ADCRESULT12");
+    GEL_WatchAdd("*0x7115,x","ADCRESULT13");
+    GEL_WatchAdd("*0x7116,x","ADCRESULT14");
+    GEL_WatchAdd("*0x7117,x","ADCRESULT15");
+    GEL_WatchAdd("*0x7118,x","ADCTRL3");
+    GEL_WatchAdd("*0x7119,x","ADCST");
+    GEL_WatchAdd("*0x711C,x","ADCREFSEL");
+    GEL_WatchAdd("*0x711D,x","ADCOFFTRIM");
+
+    GEL_WatchAdd("*0x0B00,x","ADCRESULT0 Mirror");
+    GEL_WatchAdd("*0x0B01,x","ADCRESULT1 Mirror");
+    GEL_WatchAdd("*0x0B02,x","ADCRESULT2 Mirror");
+    GEL_WatchAdd("*0x0B03,x","ADCRESULT3 Mirror");
+    GEL_WatchAdd("*0x0B04,x","ADCRESULT4 Mirror");
+    GEL_WatchAdd("*0x0B05,x","ADCRESULT5 Mirror");
+    GEL_WatchAdd("*0x0B06,x","ADCRESULT6 Mirror");
+    GEL_WatchAdd("*0x0B07,x","ADCRESULT7 Mirror");
+    GEL_WatchAdd("*0x0B08,x","ADCRESULT8 Mirror");
+    GEL_WatchAdd("*0x0B09,x","ADCRESULT9 Mirror");
+    GEL_WatchAdd("*0x0B0A,x","ADCRESULT10 Mirror");
+    GEL_WatchAdd("*0x0B0B,x","ADCRESULT11 Mirror");
+    GEL_WatchAdd("*0x0B0C,x","ADCRESULT12 Mirror");
+    GEL_WatchAdd("*0x0B0D,x","ADCRESULT13 Mirror");
+    GEL_WatchAdd("*0x0B0E,x","ADCRESULT14 Mirror");
+    GEL_WatchAdd("*0x0B0F,x","ADCRESULT15 Mirror");
+}
+hotmenu ADC_Control_Regs()
+{
+    GEL_WatchAdd("*0x7100,x","ADCTRL1");
+    GEL_WatchAdd("*0x7101,x","ADCTRL2");
+    GEL_WatchAdd("*0x7102,x","ADCMAXCONV");
+    GEL_WatchAdd("*0x7107,x","ADCASEQSR");
+    GEL_WatchAdd("*0x7118,x","ADCTRL3");
+    GEL_WatchAdd("*0x7119,x","ADCST");
+    GEL_WatchAdd("*0x711C,x","ADCREFSEL");
+    GEL_WatchAdd("*0x711D,x","ADCOFFTRIM");
+}
+hotmenu ADCCHSELSEQx_Regs()
+{
+    GEL_WatchAdd("*0x7103,x","ADCCHSELSEQ1");
+    GEL_WatchAdd("*0x7104,x","ADCCHSELSEQ2");
+    GEL_WatchAdd("*0x7105,x","ADCCHSELSEQ3");
+    GEL_WatchAdd("*0x7106,x","ADCCHSELSEQ4");
+}
+hotmenu ADCRESULT_0_to_7()
+{
+    GEL_WatchAdd("*0x7108,x","ADCRESULT0");
+    GEL_WatchAdd("*0x7109,x","ADCRESULT1");
+    GEL_WatchAdd("*0x710A,x","ADCRESULT2");
+    GEL_WatchAdd("*0x710B,x","ADCRESULT3");
+    GEL_WatchAdd("*0x710C,x","ADCRESULT4");
+    GEL_WatchAdd("*0x710D,x","ADCRESULT5");
+    GEL_WatchAdd("*0x710E,x","ADCRESULT6");
+    GEL_WatchAdd("*0x710F,x","ADCRESULT7");
+}
+hotmenu ADCRESULT_8_to_15()
+{
+    GEL_WatchAdd("*0x7110,x","ADCRESULT8");
+    GEL_WatchAdd("*0x7111,x","ADCRESULT9");
+    GEL_WatchAdd("*0x7112,x","ADCRESULT10");
+    GEL_WatchAdd("*0x7113,x","ADCRESULT11");
+    GEL_WatchAdd("*0x7114,x","ADCRESULT12");
+    GEL_WatchAdd("*0x7115,x","ADCRESULT13");
+    GEL_WatchAdd("*0x7116,x","ADCRESULT14");
+    GEL_WatchAdd("*0x7117,x","ADCRESULT15");
+}
+hotmenu ADCRESULT_Mirror_0_to_7()
+{
+    GEL_WatchAdd("*0x0B00,x","ADCRESULT0 Mirror");
+    GEL_WatchAdd("*0x0B01,x","ADCRESULT1 Mirror");
+    GEL_WatchAdd("*0x0B02,x","ADCRESULT2 Mirror");
+    GEL_WatchAdd("*0x0B03,x","ADCRESULT3 Mirror");
+    GEL_WatchAdd("*0x0B04,x","ADCRESULT4 Mirror");
+    GEL_WatchAdd("*0x0B05,x","ADCRESULT5 Mirror");
+    GEL_WatchAdd("*0x0B06,x","ADCRESULT6 Mirror");
+    GEL_WatchAdd("*0x0B07,x","ADCRESULT7 Mirror");
+}
+hotmenu ADCRESULT_Mirror_8_to_15()
+{
+    GEL_WatchAdd("*0x0B08,x","ADCRESULT8 Mirror");
+    GEL_WatchAdd("*0x0B09,x","ADCRESULT9 Mirror");
+    GEL_WatchAdd("*0x0B0A,x","ADCRESULT10 Mirror");
+    GEL_WatchAdd("*0x0B0B,x","ADCRESULT11 Mirror");
+    GEL_WatchAdd("*0x0B0C,x","ADCRESULT12 Mirror");
+    GEL_WatchAdd("*0x0B0D,x","ADCRESULT13 Mirror");
+    GEL_WatchAdd("*0x0B0E,x","ADCRESULT14 Mirror");
+    GEL_WatchAdd("*0x0B0F,x","ADCRESULT15 Mirror");
+}
+
+
+/********************************************************************/
+/* Clocking and Low-Power Registers                                 */
+/********************************************************************/
+menuitem "Watch Clocking and Low-Power Registers";
+
+hotmenu All_Clocking_and_Low_Power_Regs()
+{
+    GEL_WatchAdd("*0x7010,x","XCLK");
+    GEL_WatchAdd("*0x7011,x","PLLSTS");
+    GEL_WatchAdd("*0x701A,x","HISPCP");
+    GEL_WatchAdd("*0x701B,x","LOSPCP");
+    GEL_WatchAdd("*0x701C,x","PCLKCR0");
+    GEL_WatchAdd("*0x701D,x","PCLKCR1");
+    GEL_WatchAdd("*0x701E,x","LPMCR0");
+    GEL_WatchAdd("*0x7020,x","PCLKCR3");
+    GEL_WatchAdd("*0x7021,x","PLLCR");
+}
+
+/********************************************************************/
+/* Code Security Module Registers                                   */
+/********************************************************************/
+menuitem "Watch Code Security Module Registers";
+
+hotmenu CSMSCR()
+{
+    GEL_WatchAdd("*0x0AEF,x","CSMSCR");
+    GEL_WatchAdd("(*0x0AEF>>15)&1,d"," FORCESEC bit");
+    GEL_WatchAdd("(*0x0AEF)&1,d","     SECURE bit");
+}
+hotmenu PWL_Locations()
+{
+    GEL_WatchAdd("*0x33FFF8,x","PWL0");
+    GEL_WatchAdd("*0x33FFF9,x","PWL1");
+    GEL_WatchAdd("*0x33FFFA,x","PWL2");
+    GEL_WatchAdd("*0x33FFFB,x","PWL3");
+    GEL_WatchAdd("*0x33FFFC,x","PWL4");
+    GEL_WatchAdd("*0x33FFFD,x","PWL5");
+    GEL_WatchAdd("*0x33FFFE,x","PWL6");
+    GEL_WatchAdd("*0x33FFFF,x","PWL7");
+}
+
+
+/********************************************************************/
+/* CPU Timer Registers                                              */
+/********************************************************************/
+menuitem "Watch CPU Timer Registers";
+
+hotmenu All_CPU_Timer0_Regs()
+{
+    GEL_WatchAdd("*0x0C00,x","TIMER0TIM");
+    GEL_WatchAdd("*0x0C01,x","TIMER0TIMH");
+    GEL_WatchAdd("*0x0C02,x","TIMER0PRD");
+    GEL_WatchAdd("*0x0C03,x","TIMER0PRDH");
+    GEL_WatchAdd("*0x0C04,x","TIMER0TCR");
+    GEL_WatchAdd("*0x0C06,x","TIMER0TPR");
+    GEL_WatchAdd("*0x0C07,x","TIMER0TPRH");
+}
+hotmenu All_CPU_Timer1_Regs()
+{
+    GEL_WatchAdd("*0x0C08,x","TIMER1TIM");
+    GEL_WatchAdd("*0x0C09,x","TIMER1TIMH");
+    GEL_WatchAdd("*0x0C0A,x","TIMER1PRD");
+    GEL_WatchAdd("*0x0C0B,x","TIMER1PRDH");
+    GEL_WatchAdd("*0x0C0C,x","TIMER1TCR");
+    GEL_WatchAdd("*0x0C0E,x","TIMER1TPR");
+    GEL_WatchAdd("*0x0C0F,x","TIMER1TPRH");
+}
+hotmenu All_CPU_Timer2_Regs()
+{
+    GEL_WatchAdd("*0x0C10,x","TIMER2TIM");
+    GEL_WatchAdd("*0x0C11,x","TIMER2TIMH");
+    GEL_WatchAdd("*0x0C12,x","TIMER2PRD");
+    GEL_WatchAdd("*0x0C13,x","TIMER2PRDH");
+    GEL_WatchAdd("*0x0C14,x","TIMER2TCR");
+    GEL_WatchAdd("*0x0C16,x","TIMER2TPR");
+    GEL_WatchAdd("*0x0C17,x","TIMER2TPRH");
+}
+
+
+/********************************************************************/
+/* Device Emulation Registers                                       */
+/********************************************************************/
+menuitem "Watch Device Emulation Registers";
+
+hotmenu All_Emulation_Regs()
+{
+    GEL_WatchAdd("*(long *)0x0880,x","DEVICECNF");
+    GEL_WatchAdd("*0x0882,x","CLASSID");
+    GEL_WatchAdd("*0x0883,x","REVID");
+    GEL_WatchAdd("*0x0884,x","PROTSTART");
+    GEL_WatchAdd("*0x0885,x","PROTRANGE");
+    GEL_WatchAdd("*0x380090,x","PARTID");    
+}
+
+/********************************************************************/
+/* DMA Registers                                                    */
+/********************************************************************/
+menuitem "Watch DMA Registers";
+
+hotmenu All_DMA_Regs()
+{
+    GEL_WatchAdd("*0x1000,x","DMACTRL");
+    GEL_WatchAdd("*0x1001,x","DEBUGCTRL");
+    GEL_WatchAdd("*0x1002,x","REVISION");
+    GEL_WatchAdd("*0x1004,x","PRIORITYCTRL1");
+    GEL_WatchAdd("*0x1006,x","PRIORITYSTAT");
+
+    GEL_WatchAdd("*0x1020,x","DMA Ch1 MODE");
+    GEL_WatchAdd("*0x1021,x","DMA Ch1 CONTROL");
+    GEL_WatchAdd("*0x1022,x","DMA Ch1 BURST_SIZE");
+    GEL_WatchAdd("*0x1023,x","DMA Ch1 BURST_COUNT");
+    GEL_WatchAdd("*0x1024,x","DMA Ch1 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x1025,x","DMA Ch1 DST_BURST_STEP");
+    GEL_WatchAdd("*0x1026,x","DMA Ch1 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x1027,x","DMA Ch1 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x1028,x","DMA Ch1 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x1029,x","DMA Ch1 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x102A,x","DMA Ch1 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x102B,x","DMA Ch1 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x102C,x","DMA Ch1 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x102D,x","DMA Ch1 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x102E,x","DMA Ch1 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x102F,x","DMA Ch1 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x1030,x","DMA Ch1 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1032,x","DMA Ch1 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1034,x","DMA Ch1 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1036,x","DMA Ch1 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1038,x","DMA Ch1 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x103A,x","DMA Ch1 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x103C,x","DMA Ch1 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x103E,x","DMA Ch1 DST_ADDR_ACTIVE");
+
+    GEL_WatchAdd("*0x1040,x","DMA Ch2 MODE");
+    GEL_WatchAdd("*0x1041,x","DMA Ch2 CONTROL");
+    GEL_WatchAdd("*0x1042,x","DMA Ch2 BURST_SIZE");
+    GEL_WatchAdd("*0x1043,x","DMA Ch2 BURST_COUNT");
+    GEL_WatchAdd("*0x1044,x","DMA Ch2 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x1045,x","DMA Ch2 DST_BURST_STEP");
+    GEL_WatchAdd("*0x1046,x","DMA Ch2 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x1047,x","DMA Ch2 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x1048,x","DMA Ch2 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x1049,x","DMA Ch2 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x104A,x","DMA Ch2 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x104B,x","DMA Ch2 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x104C,x","DMA Ch2 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x104D,x","DMA Ch2 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x104E,x","DMA Ch2 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x104F,x","DMA Ch2 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x1050,x","DMA Ch2 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1052,x","DMA Ch2 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1054,x","DMA Ch2 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1056,x","DMA Ch2 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1058,x","DMA Ch2 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x105A,x","DMA Ch2 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x105C,x","DMA Ch2 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x105E,x","DMA Ch2 DST_ADDR_ACTIVE");
+
+    GEL_WatchAdd("*0x1060,x","DMA Ch3 MODE");
+    GEL_WatchAdd("*0x1061,x","DMA Ch3 CONTROL");
+    GEL_WatchAdd("*0x1062,x","DMA Ch3 BURST_SIZE");
+    GEL_WatchAdd("*0x1063,x","DMA Ch3 BURST_COUNT");
+    GEL_WatchAdd("*0x1064,x","DMA Ch3 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x1065,x","DMA Ch3 DST_BURST_STEP");
+    GEL_WatchAdd("*0x1066,x","DMA Ch3 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x1067,x","DMA Ch3 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x1068,x","DMA Ch3 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x1069,x","DMA Ch3 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x106A,x","DMA Ch3 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x106B,x","DMA Ch3 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x106C,x","DMA Ch3 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x106D,x","DMA Ch3 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x106E,x","DMA Ch3 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x106F,x","DMA Ch3 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x1070,x","DMA Ch3 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1072,x","DMA Ch3 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1074,x","DMA Ch3 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1076,x","DMA Ch3 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1078,x","DMA Ch3 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x107A,x","DMA Ch3 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x107C,x","DMA Ch3 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x107E,x","DMA Ch3 DST_ADDR_ACTIVE");
+
+    GEL_WatchAdd("*0x1080,x","DMA Ch4 MODE");
+    GEL_WatchAdd("*0x1081,x","DMA Ch4 CONTROL");
+    GEL_WatchAdd("*0x1082,x","DMA Ch4 BURST_SIZE");
+    GEL_WatchAdd("*0x1083,x","DMA Ch4 BURST_COUNT");
+    GEL_WatchAdd("*0x1084,x","DMA Ch4 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x1085,x","DMA Ch4 DST_BURST_STEP");
+    GEL_WatchAdd("*0x1086,x","DMA Ch4 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x1087,x","DMA Ch4 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x1088,x","DMA Ch4 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x1089,x","DMA Ch4 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x108A,x","DMA Ch4 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x108B,x","DMA Ch4 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x108C,x","DMA Ch4 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x108D,x","DMA Ch4 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x108E,x","DMA Ch4 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x108F,x","DMA Ch4 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x1090,x","DMA Ch4 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1092,x","DMA Ch4 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1094,x","DMA Ch4 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1096,x","DMA Ch4 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1098,x","DMA Ch4 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x109A,x","DMA Ch4 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x109C,x","DMA Ch4 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x109E,x","DMA Ch4 DST_ADDR_ACTIVE");
+
+    GEL_WatchAdd("*0x10A0,x","DMA Ch5 MODE");
+    GEL_WatchAdd("*0x10A1,x","DMA Ch5 CONTROL");
+    GEL_WatchAdd("*0x10A2,x","DMA Ch5 BURST_SIZE");
+    GEL_WatchAdd("*0x10A3,x","DMA Ch5 BURST_COUNT");
+    GEL_WatchAdd("*0x10A4,x","DMA Ch5 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x10A5,x","DMA Ch5 DST_BURST_STEP");
+    GEL_WatchAdd("*0x10A6,x","DMA Ch5 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x10A7,x","DMA Ch5 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x10A8,x","DMA Ch5 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x10A9,x","DMA Ch5 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x10AA,x","DMA Ch5 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x10AB,x","DMA Ch5 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x10AC,x","DMA Ch5 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x10AD,x","DMA Ch5 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x10AE,x","DMA Ch5 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x10AF,x","DMA Ch5 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x10B0,x","DMA Ch5 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10B2,x","DMA Ch5 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10B4,x","DMA Ch5 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10B6,x","DMA Ch5 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10B8,x","DMA Ch5 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10BA,x","DMA Ch5 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10BC,x","DMA Ch5 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10BE,x","DMA Ch5 DST_ADDR_ACTIVE");
+
+    GEL_WatchAdd("*0x10C0,x","DMA Ch6 MODE");
+    GEL_WatchAdd("*0x10C1,x","DMA Ch6 CONTROL");
+    GEL_WatchAdd("*0x10C2,x","DMA Ch6 BURST_SIZE");
+    GEL_WatchAdd("*0x10C3,x","DMA Ch6 BURST_COUNT");
+    GEL_WatchAdd("*0x10C4,x","DMA Ch6 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x10C5,x","DMA Ch6 DST_BURST_STEP");
+    GEL_WatchAdd("*0x10C6,x","DMA Ch6 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x10C7,x","DMA Ch6 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x10C8,x","DMA Ch6 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x10C9,x","DMA Ch6 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x10CA,x","DMA Ch6 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x10CB,x","DMA Ch6 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x10CC,x","DMA Ch6 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x10CD,x","DMA Ch6 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x10CE,x","DMA Ch6 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x10CF,x","DMA Ch6 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x10D0,x","DMA Ch6 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10D2,x","DMA Ch6 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10D4,x","DMA Ch6 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10D6,x","DMA Ch6 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10D8,x","DMA Ch6 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10DA,x","DMA Ch6 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10DC,x","DMA Ch6 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10DE,x","DMA Ch6 DST_ADDR_ACTIVE");
+
+
+}
+hotmenu DMA_Channel_1_regs()
+{
+    GEL_WatchAdd("*0x1020,x","DMA Ch1 MODE");
+    GEL_WatchAdd("*0x1021,x","DMA Ch1 CONTROL");
+    GEL_WatchAdd("*0x1022,x","DMA Ch1 BURST_SIZE");
+    GEL_WatchAdd("*0x1023,x","DMA Ch1 BURST_COUNT");
+    GEL_WatchAdd("*0x1024,x","DMA Ch1 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x1025,x","DMA Ch1 DST_BURST_STEP");
+    GEL_WatchAdd("*0x1026,x","DMA Ch1 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x1027,x","DMA Ch1 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x1028,x","DMA Ch1 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x1029,x","DMA Ch1 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x102A,x","DMA Ch1 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x102B,x","DMA Ch1 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x102C,x","DMA Ch1 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x102D,x","DMA Ch1 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x102E,x","DMA Ch1 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x102F,x","DMA Ch1 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x1030,x","DMA Ch1 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1032,x","DMA Ch1 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1034,x","DMA Ch1 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1036,x","DMA Ch1 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1038,x","DMA Ch1 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x103A,x","DMA Ch1 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x103C,x","DMA Ch1 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x103E,x","DMA Ch1 DST_ADDR_ACTIVE");
+}
+
+hotmenu DMA_Channel_2_regs()
+{
+    GEL_WatchAdd("*0x1040,x","DMA Ch2 MODE");
+    GEL_WatchAdd("*0x1041,x","DMA Ch2 CONTROL");
+    GEL_WatchAdd("*0x1042,x","DMA Ch2 BURST_SIZE");
+    GEL_WatchAdd("*0x1043,x","DMA Ch2 BURST_COUNT");
+    GEL_WatchAdd("*0x1044,x","DMA Ch2 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x1045,x","DMA Ch2 DST_BURST_STEP");
+    GEL_WatchAdd("*0x1046,x","DMA Ch2 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x1047,x","DMA Ch2 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x1048,x","DMA Ch2 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x1049,x","DMA Ch2 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x104A,x","DMA Ch2 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x104B,x","DMA Ch2 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x104C,x","DMA Ch2 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x104D,x","DMA Ch2 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x104E,x","DMA Ch2 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x104F,x","DMA Ch2 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x1050,x","DMA Ch2 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1052,x","DMA Ch2 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1054,x","DMA Ch2 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1056,x","DMA Ch2 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1058,x","DMA Ch2 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x105A,x","DMA Ch2 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x105C,x","DMA Ch2 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x105E,x","DMA Ch2 DST_ADDR_ACTIVE");
+}
+hotmenu DMA_Channel_3_regs()
+{
+    GEL_WatchAdd("*0x1060,x","DMA Ch3 MODE");
+    GEL_WatchAdd("*0x1061,x","DMA Ch3 CONTROL");
+    GEL_WatchAdd("*0x1062,x","DMA Ch3 BURST_SIZE");
+    GEL_WatchAdd("*0x1063,x","DMA Ch3 BURST_COUNT");
+    GEL_WatchAdd("*0x1064,x","DMA Ch3 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x1065,x","DMA Ch3 DST_BURST_STEP");
+    GEL_WatchAdd("*0x1066,x","DMA Ch3 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x1067,x","DMA Ch3 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x1068,x","DMA Ch3 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x1069,x","DMA Ch3 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x106A,x","DMA Ch3 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x106B,x","DMA Ch3 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x106C,x","DMA Ch3 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x106D,x","DMA Ch3 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x106E,x","DMA Ch3 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x106F,x","DMA Ch3 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x1070,x","DMA Ch3 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1072,x","DMA Ch3 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1074,x","DMA Ch3 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1076,x","DMA Ch3 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1078,x","DMA Ch3 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x107A,x","DMA Ch3 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x107C,x","DMA Ch3 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x107E,x","DMA Ch3 DST_ADDR_ACTIVE");
+}
+hotmenu DMA_Channel_4_regs()
+{
+    GEL_WatchAdd("*0x1080,x","DMA Ch4 MODE");
+    GEL_WatchAdd("*0x1081,x","DMA Ch4 CONTROL");
+    GEL_WatchAdd("*0x1082,x","DMA Ch4 BURST_SIZE");
+    GEL_WatchAdd("*0x1083,x","DMA Ch4 BURST_COUNT");
+    GEL_WatchAdd("*0x1084,x","DMA Ch4 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x1085,x","DMA Ch4 DST_BURST_STEP");
+    GEL_WatchAdd("*0x1086,x","DMA Ch4 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x1087,x","DMA Ch4 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x1088,x","DMA Ch4 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x1089,x","DMA Ch4 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x108A,x","DMA Ch4 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x108B,x","DMA Ch4 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x108C,x","DMA Ch4 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x108D,x","DMA Ch4 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x108E,x","DMA Ch4 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x108F,x","DMA Ch4 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x1090,x","DMA Ch4 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1092,x","DMA Ch4 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x1094,x","DMA Ch4 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1096,x","DMA Ch4 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x1098,x","DMA Ch4 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x109A,x","DMA Ch4 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x109C,x","DMA Ch4 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x109E,x","DMA Ch4 DST_ADDR_ACTIVE");
+}
+hotmenu DMA_Channel_5_regs()
+{
+    GEL_WatchAdd("*0x10A0,x","DMA Ch5 MODE");
+    GEL_WatchAdd("*0x10A1,x","DMA Ch5 CONTROL");
+    GEL_WatchAdd("*0x10A2,x","DMA Ch5 BURST_SIZE");
+    GEL_WatchAdd("*0x10A3,x","DMA Ch5 BURST_COUNT");
+    GEL_WatchAdd("*0x10A4,x","DMA Ch5 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x10A5,x","DMA Ch5 DST_BURST_STEP");
+    GEL_WatchAdd("*0x10A6,x","DMA Ch5 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x10A7,x","DMA Ch5 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x10A8,x","DMA Ch5 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x10A9,x","DMA Ch5 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x10AA,x","DMA Ch5 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x10AB,x","DMA Ch5 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x10AC,x","DMA Ch5 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x10AD,x","DMA Ch5 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x10AE,x","DMA Ch5 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x10AF,x","DMA Ch5 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x10B0,x","DMA Ch5 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10B2,x","DMA Ch5 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10B4,x","DMA Ch5 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10B6,x","DMA Ch5 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10B8,x","DMA Ch5 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10BA,x","DMA Ch5 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10BC,x","DMA Ch5 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10BE,x","DMA Ch5 DST_ADDR_ACTIVE");
+}
+hotmenu DMA_Channel_6_regs()
+{
+    GEL_WatchAdd("*0x10C0,x","DMA Ch6 MODE");
+    GEL_WatchAdd("*0x10C1,x","DMA Ch6 CONTROL");
+    GEL_WatchAdd("*0x10C2,x","DMA Ch6 BURST_SIZE");
+    GEL_WatchAdd("*0x10C3,x","DMA Ch6 BURST_COUNT");
+    GEL_WatchAdd("*0x10C4,x","DMA Ch6 SRC_BURST_STEP");
+    GEL_WatchAdd("*0x10C5,x","DMA Ch6 DST_BURST_STEP");
+    GEL_WatchAdd("*0x10C6,x","DMA Ch6 TRANSFER_SIZE");
+    GEL_WatchAdd("*0x10C7,x","DMA Ch6 TRANSFER_COUNT");
+    GEL_WatchAdd("*0x10C8,x","DMA Ch6 SRC_TRANSFER_STEP");
+    GEL_WatchAdd("*0x10C9,x","DMA Ch6 DST_TRANSFER_STEP");
+    GEL_WatchAdd("*0x10CA,x","DMA Ch6 SRC_WRAP_SIZE");
+    GEL_WatchAdd("*0x10CB,x","DMA Ch6 SRC_WRAP_COUNT");
+    GEL_WatchAdd("*0x10CC,x","DMA Ch6 SRC_WRAP_STEP");
+    GEL_WatchAdd("*0x10CD,x","DMA Ch6 DST_WRAP_SIZE");
+    GEL_WatchAdd("*0x10CE,x","DMA Ch6 DST_WRAP_COUNT");
+    GEL_WatchAdd("*0x10CF,x","DMA Ch6 DST_WRAP_STEP");
+    GEL_WatchAdd("*(long *)0x10D0,x","DMA Ch6 SRC_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10D2,x","DMA Ch6 SRC_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10D4,x","DMA Ch6 SRC_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10D6,x","DMA Ch6 SRC_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10D8,x","DMA Ch6 DST_BEG_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10DA,x","DMA Ch6 DST_ADDR_SHDW");
+    GEL_WatchAdd("*(long *)0x10DC,x","DMA Ch6 DST_BEG_ADDR_ACTIVE");
+    GEL_WatchAdd("*(long *)0x10DE,x","DMA Ch6 DST_ADDR_ACTIVE");
+}
+
+/********************************************************************/
+/* eCAN Registers                                                   */
+/********************************************************************/
+menuitem "Watch eCAN Registers";
+
+hotmenu eCAN_A_Global_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6000,x","eCANA CANME");
+    GEL_WatchAdd("*(long *)0x6002,x","eCANA CANMD");
+    GEL_WatchAdd("*(long *)0x6004,x","eCANA CANTRS");
+    GEL_WatchAdd("*(long *)0x6006,x","eCANA CANTRR");
+    GEL_WatchAdd("*(long *)0x6008,x","eCANA CANTA");
+    GEL_WatchAdd("*(long *)0x600A,x","eCANA CANAA");
+    GEL_WatchAdd("*(long *)0x600C,x","eCANA CANRMP");
+    GEL_WatchAdd("*(long *)0x600E,x","eCANA CANRML");
+    GEL_WatchAdd("*(long *)0x6010,x","eCANA CANRFP");
+    GEL_WatchAdd("*(long *)0x6014,x","eCANA CANMC");
+    GEL_WatchAdd("*(long *)0x6016,x","eCANA CANBTC");
+    GEL_WatchAdd("*(long *)0x6018,x","eCANA CANES");
+    GEL_WatchAdd("*(long *)0x601A,x","eCANA CANTEC");
+    GEL_WatchAdd("*(long *)0x601C,x","eCANA CANREC");
+    GEL_WatchAdd("*(long *)0x601E,x","eCANA CANGIF0");
+    GEL_WatchAdd("*(long *)0x6020,x","eCANA CANGIM");
+    GEL_WatchAdd("*(long *)0x6022,x","eCANA CANGIF1");
+    GEL_WatchAdd("*(long *)0x6024,x","eCANA CANMIM");
+    GEL_WatchAdd("*(long *)0x6026,x","eCANA CANMIL");
+    GEL_WatchAdd("*(long *)0x6028,x","eCANA CANOPC");
+    GEL_WatchAdd("*(long *)0x602A,x","eCANA CANTIOC");
+    GEL_WatchAdd("*(long *)0x602C,x","eCANA CANRIOC");
+    GEL_WatchAdd("*(long *)0x602E,x","eCANA CANLNT");
+    GEL_WatchAdd("*(long *)0x6030,x","eCANA CANTOC");
+    GEL_WatchAdd("*(long *)0x6032,x","eCANA CANTOS");
+}
+hotmenu eCAN_A_Mailbox_0_to_1_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6040,x","eCANA LAM0");
+    GEL_WatchAdd("*(long *)0x6080,x","eCANA MOTS0");
+    GEL_WatchAdd("*(long *)0x60C0,x","eCANA MOTO0");
+    GEL_WatchAdd("*(long *)0x6100,x","eCANA MID0");
+    GEL_WatchAdd("*(long *)0x6102,x","eCANA MCF0");
+    GEL_WatchAdd("*(long *)0x6104,x","eCANA MDL0");
+    GEL_WatchAdd("*(long *)0x6106,x","eCANA MDH0");
+    
+    GEL_WatchAdd("*(long *)0x6042,x","eCANA LAM1");
+    GEL_WatchAdd("*(long *)0x6082,x","eCANA MOTS1");
+    GEL_WatchAdd("*(long *)0x60C2,x","eCANA MOTO1");
+    GEL_WatchAdd("*(long *)0x6108,x","eCANA MID1");
+    GEL_WatchAdd("*(long *)0x610A,x","eCANA MCF1");
+    GEL_WatchAdd("*(long *)0x610C,x","eCANA MDL1");
+    GEL_WatchAdd("*(long *)0x610E,x","eCANA MDH1");
+}
+hotmenu eCAN_A_Mailbox_2_to_3_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6044,x","eCANA LAM2");
+    GEL_WatchAdd("*(long *)0x6084,x","eCANA MOTS2");
+    GEL_WatchAdd("*(long *)0x60C4,x","eCANA MOTO2");
+    GEL_WatchAdd("*(long *)0x6110,x","eCANA MID2");
+    GEL_WatchAdd("*(long *)0x6112,x","eCANA MCF2");
+    GEL_WatchAdd("*(long *)0x6114,x","eCANA MDL2");
+    GEL_WatchAdd("*(long *)0x6116,x","eCANA MDH2");
+
+    GEL_WatchAdd("*(long *)0x6046,x","eCANA LAM3");
+    GEL_WatchAdd("*(long *)0x6086,x","eCANA MOTS3");
+    GEL_WatchAdd("*(long *)0x60C6,x","eCANA MOTO3");
+    GEL_WatchAdd("*(long *)0x6118,x","eCANA MID3");
+    GEL_WatchAdd("*(long *)0x611A,x","eCANA MCF3");
+    GEL_WatchAdd("*(long *)0x611C,x","eCANA MDL3");
+    GEL_WatchAdd("*(long *)0x611E,x","eCANA MDH3");
+}
+hotmenu eCAN_A_Mailbox_4_to_5_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6048,x","eCANA LAM4");
+    GEL_WatchAdd("*(long *)0x6088,x","eCANA MOTS4");
+    GEL_WatchAdd("*(long *)0x60C8,x","eCANA MOTO4");
+    GEL_WatchAdd("*(long *)0x6120,x","eCANA MID4");
+    GEL_WatchAdd("*(long *)0x6122,x","eCANA MCF4");
+    GEL_WatchAdd("*(long *)0x6124,x","eCANA MDL4");
+    GEL_WatchAdd("*(long *)0x6126,x","eCANA MDH4");
+    
+    GEL_WatchAdd("*(long *)0x604A,x","eCANA LAM5");
+    GEL_WatchAdd("*(long *)0x608A,x","eCANA MOTS5");
+    GEL_WatchAdd("*(long *)0x60CA,x","eCANA MOTO5");
+    GEL_WatchAdd("*(long *)0x6128,x","eCANA MID5");
+    GEL_WatchAdd("*(long *)0x612A,x","eCANA MCF5");
+    GEL_WatchAdd("*(long *)0x612C,x","eCANA MDL5");
+    GEL_WatchAdd("*(long *)0x612E,x","eCANA MDH5");
+}
+hotmenu eCAN_A_Mailbox_6_to_7_Regs()
+{
+    GEL_WatchAdd("*(long *)0x604C,x","eCANA LAM6");
+    GEL_WatchAdd("*(long *)0x608C,x","eCANA MOTS6");
+    GEL_WatchAdd("*(long *)0x60CC,x","eCANA MOTO6");
+    GEL_WatchAdd("*(long *)0x6130,x","eCANA MID6");
+    GEL_WatchAdd("*(long *)0x6132,x","eCANA MCF6");
+    GEL_WatchAdd("*(long *)0x6134,x","eCANA MDL6");
+    GEL_WatchAdd("*(long *)0x6136,x","eCANA MDH6");
+    
+    GEL_WatchAdd("*(long *)0x604E,x","eCANA LAM7");
+    GEL_WatchAdd("*(long *)0x608E,x","eCANA MOTS7");
+    GEL_WatchAdd("*(long *)0x60CE,x","eCANA MOTO7");
+    GEL_WatchAdd("*(long *)0x6138,x","eCANA MID7");
+    GEL_WatchAdd("*(long *)0x613A,x","eCANA MCF7");
+    GEL_WatchAdd("*(long *)0x613C,x","eCANA MDL7");
+    GEL_WatchAdd("*(long *)0x613E,x","eCANA MDH7");
+}
+hotmenu eCAN_A_Mailbox_8_to_9_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6050,x","eCANA LAM8");
+    GEL_WatchAdd("*(long *)0x6090,x","eCANA MOTS8");
+    GEL_WatchAdd("*(long *)0x60D0,x","eCANA MOTO8");
+    GEL_WatchAdd("*(long *)0x6140,x","eCANA MID8");
+    GEL_WatchAdd("*(long *)0x6142,x","eCANA MCF8");
+    GEL_WatchAdd("*(long *)0x6144,x","eCANA MDL8");
+    GEL_WatchAdd("*(long *)0x6146,x","eCANA MDH8");
+
+    GEL_WatchAdd("*(long *)0x6052,x","eCANA LAM9");
+    GEL_WatchAdd("*(long *)0x6092,x","eCANA MOTS9");
+    GEL_WatchAdd("*(long *)0x60D2,x","eCANA MOTO9");
+    GEL_WatchAdd("*(long *)0x6148,x","eCANA MID9");
+    GEL_WatchAdd("*(long *)0x614A,x","eCANA MCF9");
+    GEL_WatchAdd("*(long *)0x614C,x","eCANA MDL9");
+    GEL_WatchAdd("*(long *)0x614E,x","eCANA MDH9");
+}
+hotmenu eCAN_A_Mailbox_10_to_11_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6054,x","eCANA LAM10");
+    GEL_WatchAdd("*(long *)0x6094,x","eCANA MOTS10");
+    GEL_WatchAdd("*(long *)0x60D4,x","eCANA MOTO10");
+    GEL_WatchAdd("*(long *)0x6150,x","eCANA MID10");
+    GEL_WatchAdd("*(long *)0x6152,x","eCANA MCF10");
+    GEL_WatchAdd("*(long *)0x6154,x","eCANA MDL10");
+    GEL_WatchAdd("*(long *)0x6156,x","eCANA MDH10");
+
+    GEL_WatchAdd("*(long *)0x6056,x","eCANA LAM11");
+    GEL_WatchAdd("*(long *)0x6096,x","eCANA MOTS11");
+    GEL_WatchAdd("*(long *)0x60D6,x","eCANA MOTO11");
+    GEL_WatchAdd("*(long *)0x6158,x","eCANA MID11");
+    GEL_WatchAdd("*(long *)0x615A,x","eCANA MCF11");
+    GEL_WatchAdd("*(long *)0x615C,x","eCANA MDL11");
+    GEL_WatchAdd("*(long *)0x615E,x","eCANA MDH11");
+}
+hotmenu eCAN_A_Mailbox_12_to_13_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6058,x","eCANA LAM12");
+    GEL_WatchAdd("*(long *)0x6098,x","eCANA MOTS12");
+    GEL_WatchAdd("*(long *)0x60D8,x","eCANA MOTO12");
+    GEL_WatchAdd("*(long *)0x6160,x","eCANA MID12");
+    GEL_WatchAdd("*(long *)0x6162,x","eCANA MCF12");
+    GEL_WatchAdd("*(long *)0x6164,x","eCANA MDL12");
+    GEL_WatchAdd("*(long *)0x6166,x","eCANA MDH12");
+    
+    GEL_WatchAdd("*(long *)0x605A,x","eCANA LAM13");
+    GEL_WatchAdd("*(long *)0x609A,x","eCANA MOTS13");
+    GEL_WatchAdd("*(long *)0x60DA,x","eCANA MOTO13");
+    GEL_WatchAdd("*(long *)0x6168,x","eCANA MID13");
+    GEL_WatchAdd("*(long *)0x616A,x","eCANA MCF13");
+    GEL_WatchAdd("*(long *)0x616C,x","eCANA MDL13");
+    GEL_WatchAdd("*(long *)0x616E,x","eCANA MDH13");
+}
+hotmenu eCAN_A_Mailbox_14_to_15_Regs()
+{
+    GEL_WatchAdd("*(long *)0x605C,x","eCANA LAM14");
+    GEL_WatchAdd("*(long *)0x609C,x","eCANA MOTS14");
+    GEL_WatchAdd("*(long *)0x60DC,x","eCANA MOTO14");
+    GEL_WatchAdd("*(long *)0x6170,x","eCANA MID14");
+    GEL_WatchAdd("*(long *)0x6172,x","eCANA MCF14");
+    GEL_WatchAdd("*(long *)0x6174,x","eCANA MDL14");
+    GEL_WatchAdd("*(long *)0x6176,x","eCANA MDH14");
+    
+    GEL_WatchAdd("*(long *)0x605E,x","eCANA LAM15");
+    GEL_WatchAdd("*(long *)0x609E,x","eCANA MOTS15");
+    GEL_WatchAdd("*(long *)0x60DE,x","eCANA MOTO15");
+    GEL_WatchAdd("*(long *)0x6178,x","eCANA MID15");
+    GEL_WatchAdd("*(long *)0x617A,x","eCANA MCF15");
+    GEL_WatchAdd("*(long *)0x617C,x","eCANA MDL15");
+    GEL_WatchAdd("*(long *)0x617E,x","eCANA MDH15");
+}
+hotmenu eCAN_A_Mailbox_16_to_17_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6060,x","eCANA LAM16");
+    GEL_WatchAdd("*(long *)0x60A0,x","eCANA MOTS16");
+    GEL_WatchAdd("*(long *)0x60E0,x","eCANA MOTO16");
+    GEL_WatchAdd("*(long *)0x6180,x","eCANA MID16");
+    GEL_WatchAdd("*(long *)0x6182,x","eCANA MCF16");
+    GEL_WatchAdd("*(long *)0x6184,x","eCANA MDL16");
+    GEL_WatchAdd("*(long *)0x6186,x","eCANA MDH16");
+
+    GEL_WatchAdd("*(long *)0x6062,x","eCANA LAM17");
+    GEL_WatchAdd("*(long *)0x60A2,x","eCANA MOTS17");
+    GEL_WatchAdd("*(long *)0x60E2,x","eCANA MOTO17");
+    GEL_WatchAdd("*(long *)0x6188,x","eCANA MID17");
+    GEL_WatchAdd("*(long *)0x618A,x","eCANA MCF17");
+    GEL_WatchAdd("*(long *)0x618C,x","eCANA MDL17");
+    GEL_WatchAdd("*(long *)0x618E,x","eCANA MDH17");
+}
+hotmenu eCAN_A_Mailbox_18_to_19_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6064,x","eCANA LAM18");
+    GEL_WatchAdd("*(long *)0x60A4,x","eCANA MOTS18");
+    GEL_WatchAdd("*(long *)0x60E4,x","eCANA MOTO18");
+    GEL_WatchAdd("*(long *)0x6190,x","eCANA MID18");
+    GEL_WatchAdd("*(long *)0x6192,x","eCANA MCF18");
+    GEL_WatchAdd("*(long *)0x6194,x","eCANA MDL18");
+    GEL_WatchAdd("*(long *)0x6196,x","eCANA MDH18");
+
+    GEL_WatchAdd("*(long *)0x6066,x","eCANA LAM19");
+    GEL_WatchAdd("*(long *)0x60A6,x","eCANA MOTS19");
+    GEL_WatchAdd("*(long *)0x60E6,x","eCANA MOTO19");
+    GEL_WatchAdd("*(long *)0x6198,x","eCANA MID19");
+    GEL_WatchAdd("*(long *)0x619A,x","eCANA MCF19");
+    GEL_WatchAdd("*(long *)0x619C,x","eCANA MDL19");
+    GEL_WatchAdd("*(long *)0x619E,x","eCANA MDH19");
+}
+hotmenu eCAN_A_Mailbox_20_to_21_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6068,x","eCANA LAM20");
+    GEL_WatchAdd("*(long *)0x60A8,x","eCANA MOTS20");
+    GEL_WatchAdd("*(long *)0x60E8,x","eCANA MOTO20");
+    GEL_WatchAdd("*(long *)0x61A0,x","eCANA MID20");
+    GEL_WatchAdd("*(long *)0x61A2,x","eCANA MCF20");
+    GEL_WatchAdd("*(long *)0x61A4,x","eCANA MDL20");
+    GEL_WatchAdd("*(long *)0x61A6,x","eCANA MDH20");
+    
+    GEL_WatchAdd("*(long *)0x606A,x","eCANA LAM21");
+    GEL_WatchAdd("*(long *)0x60AA,x","eCANA MOTS21");
+    GEL_WatchAdd("*(long *)0x60EA,x","eCANA MOTO21");
+    GEL_WatchAdd("*(long *)0x61A8,x","eCANA MID21");
+    GEL_WatchAdd("*(long *)0x61AA,x","eCANA MCF21");
+    GEL_WatchAdd("*(long *)0x61AC,x","eCANA MDL21");
+    GEL_WatchAdd("*(long *)0x61AE,x","eCANA MDH21");
+}
+hotmenu eCAN_A_Mailbox_22_to_23_Regs()
+{
+    GEL_WatchAdd("*(long *)0x606C,x","eCANA LAM22");
+    GEL_WatchAdd("*(long *)0x60AC,x","eCANA MOTS22");
+    GEL_WatchAdd("*(long *)0x60EC,x","eCANA MOTO22");
+    GEL_WatchAdd("*(long *)0x61B0,x","eCANA MID22");
+    GEL_WatchAdd("*(long *)0x61B2,x","eCANA MCF22");
+    GEL_WatchAdd("*(long *)0x61B4,x","eCANA MDL22");
+    GEL_WatchAdd("*(long *)0x61B6,x","eCANA MDH22");
+
+    GEL_WatchAdd("*(long *)0x606E,x","eCANA LAM23");
+    GEL_WatchAdd("*(long *)0x60AE,x","eCANA MOTS23");
+    GEL_WatchAdd("*(long *)0x60EE,x","eCANA MOTO23");
+    GEL_WatchAdd("*(long *)0x61B8,x","eCANA MID23");
+    GEL_WatchAdd("*(long *)0x61BA,x","eCANA MCF23");
+    GEL_WatchAdd("*(long *)0x61BC,x","eCANA MDL23");
+    GEL_WatchAdd("*(long *)0x61BE,x","eCANA MDH23");
+}
+hotmenu eCAN_A_Mailbox_24_to_25_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6070,x","eCANA LAM24");
+    GEL_WatchAdd("*(long *)0x60B0,x","eCANA MOTS24");
+    GEL_WatchAdd("*(long *)0x60F0,x","eCANA MOTO24");
+    GEL_WatchAdd("*(long *)0x61C0,x","eCANA MID24");
+    GEL_WatchAdd("*(long *)0x61C2,x","eCANA MCF24");
+    GEL_WatchAdd("*(long *)0x61C4,x","eCANA MDL24");
+    GEL_WatchAdd("*(long *)0x61C6,x","eCANA MDH24");
+
+    GEL_WatchAdd("*(long *)0x6072,x","eCANA LAM25");
+    GEL_WatchAdd("*(long *)0x60B2,x","eCANA MOTS25");
+    GEL_WatchAdd("*(long *)0x60F2,x","eCANA MOTO25");
+    GEL_WatchAdd("*(long *)0x61C8,x","eCANA MID25");
+    GEL_WatchAdd("*(long *)0x61CA,x","eCANA MCF25");
+    GEL_WatchAdd("*(long *)0x61CC,x","eCANA MDL25");
+    GEL_WatchAdd("*(long *)0x61CE,x","eCANA MDH25");
+}
+hotmenu eCAN_A_Mailbox_26_to_27_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6074,x","eCANA LAM26");
+    GEL_WatchAdd("*(long *)0x60B4,x","eCANA MOTS26");
+    GEL_WatchAdd("*(long *)0x60F4,x","eCANA MOTO26");
+    GEL_WatchAdd("*(long *)0x61D0,x","eCANA MID26");
+    GEL_WatchAdd("*(long *)0x61D2,x","eCANA MCF26");
+    GEL_WatchAdd("*(long *)0x61D4,x","eCANA MDL26");
+    GEL_WatchAdd("*(long *)0x61D6,x","eCANA MDH26");
+
+    GEL_WatchAdd("*(long *)0x6076,x","eCANA LAM27");
+    GEL_WatchAdd("*(long *)0x60B6,x","eCANA MOTS27");
+    GEL_WatchAdd("*(long *)0x60F6,x","eCANA MOTO27");
+    GEL_WatchAdd("*(long *)0x61D8,x","eCANA MID27");
+    GEL_WatchAdd("*(long *)0x61DA,x","eCANA MCF27");
+    GEL_WatchAdd("*(long *)0x61DC,x","eCANA MDL27");
+    GEL_WatchAdd("*(long *)0x61DE,x","eCANA MDH27");
+}
+hotmenu eCAN_A_Mailbox_28_to_29_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6078,x","eCANA LAM28");
+    GEL_WatchAdd("*(long *)0x60B8,x","eCANA MOTS28");
+    GEL_WatchAdd("*(long *)0x60F8,x","eCANA MOTO28");
+    GEL_WatchAdd("*(long *)0x61E0,x","eCANA MID28");
+    GEL_WatchAdd("*(long *)0x61E2,x","eCANA MCF28");
+    GEL_WatchAdd("*(long *)0x61E4,x","eCANA MDL28");
+    GEL_WatchAdd("*(long *)0x61E6,x","eCANA MDH28");
+
+    GEL_WatchAdd("*(long *)0x607A,x","eCANA LAM29");
+    GEL_WatchAdd("*(long *)0x60BA,x","eCANA MOTS29");
+    GEL_WatchAdd("*(long *)0x60FA,x","eCANA MOTO29");
+    GEL_WatchAdd("*(long *)0x61E8,x","eCANA MID29");
+    GEL_WatchAdd("*(long *)0x61EA,x","eCANA MCF29");
+    GEL_WatchAdd("*(long *)0x61EC,x","eCANA MDL29");
+    GEL_WatchAdd("*(long *)0x61EE,x","eCANA MDH29");
+}
+hotmenu eCAN_A_Mailbox_30_to_31_Regs()
+{
+    GEL_WatchAdd("*(long *)0x607C,x","eCANA LAM30");
+    GEL_WatchAdd("*(long *)0x60BC,x","eCANA MOTS30");
+    GEL_WatchAdd("*(long *)0x60FC,x","eCANA MOTO30");
+    GEL_WatchAdd("*(long *)0x61F0,x","eCANA MID30");
+    GEL_WatchAdd("*(long *)0x61F2,x","eCANA MCF30");
+    GEL_WatchAdd("*(long *)0x61F4,x","eCANA MDL30");
+    GEL_WatchAdd("*(long *)0x61F6,x","eCANA MDH30");
+
+    GEL_WatchAdd("*(long *)0x607E,x","eCANA LAM31");
+    GEL_WatchAdd("*(long *)0x60BE,x","eCANA MOTS31");
+    GEL_WatchAdd("*(long *)0x60FE,x","eCANA MOTO31");
+    GEL_WatchAdd("*(long *)0x61F8,x","eCANA MID31");
+    GEL_WatchAdd("*(long *)0x61FA,x","eCANA MCF31");
+    GEL_WatchAdd("*(long *)0x61FC,x","eCANA MDL31");
+    GEL_WatchAdd("*(long *)0x61FE,x","eCANA MDH31");
+}
+hotmenu eCAN_B_Global_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6200,x","eCANB CANME");
+    GEL_WatchAdd("*(long *)0x6202,x","eCANB CANMD");
+    GEL_WatchAdd("*(long *)0x6204,x","eCANB CANTRS");
+    GEL_WatchAdd("*(long *)0x6206,x","eCANB CANTRR");
+    GEL_WatchAdd("*(long *)0x6208,x","eCANB CANTA");
+    GEL_WatchAdd("*(long *)0x620A,x","eCANB CANAA");
+    GEL_WatchAdd("*(long *)0x620C,x","eCANB CANRMP");
+    GEL_WatchAdd("*(long *)0x620E,x","eCANB CANRML");
+    GEL_WatchAdd("*(long *)0x6210,x","eCANB CANRFP");
+    GEL_WatchAdd("*(long *)0x6214,x","eCANB CANMC");
+    GEL_WatchAdd("*(long *)0x6216,x","eCANB CANBTC");
+    GEL_WatchAdd("*(long *)0x6218,x","eCANB CANES");
+    GEL_WatchAdd("*(long *)0x621A,x","eCANB CANTEC");
+    GEL_WatchAdd("*(long *)0x621C,x","eCANB CANREC");
+    GEL_WatchAdd("*(long *)0x621E,x","eCANB CANGIF0");
+    GEL_WatchAdd("*(long *)0x6220,x","eCANB CANGIM");
+    GEL_WatchAdd("*(long *)0x6222,x","eCANB CANGIF1");
+    GEL_WatchAdd("*(long *)0x6224,x","eCANB CANMIM");
+    GEL_WatchAdd("*(long *)0x6226,x","eCANB CANMIL");
+    GEL_WatchAdd("*(long *)0x6228,x","eCANB CANOPC");
+    GEL_WatchAdd("*(long *)0x622A,x","eCANB CANTIOC");
+    GEL_WatchAdd("*(long *)0x622C,x","eCANB CANRIOC");
+    GEL_WatchAdd("*(long *)0x622E,x","eCANB CANLNT");
+    GEL_WatchAdd("*(long *)0x6230,x","eCANB CANTOC");
+    GEL_WatchAdd("*(long *)0x6232,x","eCANB CANTOS");
+}
+hotmenu eCAN_B_Mailbox_0_to_1_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6240,x","eCANB LAM0");
+    GEL_WatchAdd("*(long *)0x6280,x","eCANB MOTS0");
+    GEL_WatchAdd("*(long *)0x62C0,x","eCANB MOTO0");
+    GEL_WatchAdd("*(long *)0x6300,x","eCANB MID0");
+    GEL_WatchAdd("*(long *)0x6302,x","eCANB MCF0");
+    GEL_WatchAdd("*(long *)0x6304,x","eCANB MDL0");
+    GEL_WatchAdd("*(long *)0x6306,x","eCANB MDH0");
+
+    GEL_WatchAdd("*(long *)0x6242,x","eCANB LAM1");
+    GEL_WatchAdd("*(long *)0x6282,x","eCANB MOTS1");
+    GEL_WatchAdd("*(long *)0x62C2,x","eCANB MOTO1");
+    GEL_WatchAdd("*(long *)0x6308,x","eCANB MID1");
+    GEL_WatchAdd("*(long *)0x630A,x","eCANB MCF1");
+    GEL_WatchAdd("*(long *)0x630C,x","eCANB MDL1");
+    GEL_WatchAdd("*(long *)0x630E,x","eCANB MDH1");
+}
+hotmenu eCAN_B_Mailbox_2_to_3_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6244,x","eCANB LAM2");
+    GEL_WatchAdd("*(long *)0x6284,x","eCANB MOTS2");
+    GEL_WatchAdd("*(long *)0x62C4,x","eCANB MOTO2");
+    GEL_WatchAdd("*(long *)0x6310,x","eCANB MID2");
+    GEL_WatchAdd("*(long *)0x6312,x","eCANB MCF2");
+    GEL_WatchAdd("*(long *)0x6314,x","eCANB MDL2");
+    GEL_WatchAdd("*(long *)0x6316,x","eCANB MDH2");
+
+    GEL_WatchAdd("*(long *)0x6246,x","eCANB LAM3");
+    GEL_WatchAdd("*(long *)0x6286,x","eCANB MOTS3");
+    GEL_WatchAdd("*(long *)0x62C6,x","eCANB MOTO3");
+    GEL_WatchAdd("*(long *)0x6318,x","eCANB MID3");
+    GEL_WatchAdd("*(long *)0x631A,x","eCANB MCF3");
+    GEL_WatchAdd("*(long *)0x631C,x","eCANB MDL3");
+    GEL_WatchAdd("*(long *)0x631E,x","eCANB MDH3");
+}
+hotmenu eCAN_B_Mailbox_4_to_5_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6248,x","eCANB LAM4");
+    GEL_WatchAdd("*(long *)0x6288,x","eCANB MOTS4");
+    GEL_WatchAdd("*(long *)0x62C8,x","eCANB MOTO4");
+    GEL_WatchAdd("*(long *)0x6320,x","eCANB MID4");
+    GEL_WatchAdd("*(long *)0x6322,x","eCANB MCF4");
+    GEL_WatchAdd("*(long *)0x6324,x","eCANB MDL4");
+    GEL_WatchAdd("*(long *)0x6326,x","eCANB MDH4");
+
+    GEL_WatchAdd("*(long *)0x624A,x","eCANB LAM5");
+    GEL_WatchAdd("*(long *)0x628A,x","eCANB MOTS5");
+    GEL_WatchAdd("*(long *)0x62CA,x","eCANB MOTO5");
+    GEL_WatchAdd("*(long *)0x6328,x","eCANB MID5");
+    GEL_WatchAdd("*(long *)0x632A,x","eCANB MCF5");
+    GEL_WatchAdd("*(long *)0x632C,x","eCANB MDL5");
+    GEL_WatchAdd("*(long *)0x632E,x","eCANB MDH5");
+}
+hotmenu eCAN_B_Mailbox_6_to_7_Regs()
+{
+    GEL_WatchAdd("*(long *)0x624C,x","eCANB LAM6");
+    GEL_WatchAdd("*(long *)0x628C,x","eCANB MOTS6");
+    GEL_WatchAdd("*(long *)0x62CC,x","eCANB MOTO6");
+    GEL_WatchAdd("*(long *)0x6330,x","eCANB MID6");
+    GEL_WatchAdd("*(long *)0x6332,x","eCANB MCF6");
+    GEL_WatchAdd("*(long *)0x6334,x","eCANB MDL6");
+    GEL_WatchAdd("*(long *)0x6336,x","eCANB MDH6");
+
+    GEL_WatchAdd("*(long *)0x624E,x","eCANB LAM7");
+    GEL_WatchAdd("*(long *)0x628E,x","eCANB MOTS7");
+    GEL_WatchAdd("*(long *)0x62CE,x","eCANB MOTO7");
+    GEL_WatchAdd("*(long *)0x6338,x","eCANB MID7");
+    GEL_WatchAdd("*(long *)0x633A,x","eCANB MCF7");
+    GEL_WatchAdd("*(long *)0x633C,x","eCANB MDL7");
+    GEL_WatchAdd("*(long *)0x633E,x","eCANB MDH7");
+}
+hotmenu eCAN_B_Mailbox_8_to_9_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6250,x","eCANB LAM8");
+    GEL_WatchAdd("*(long *)0x6290,x","eCANB MOTS8");
+    GEL_WatchAdd("*(long *)0x62D0,x","eCANB MOTO8");
+    GEL_WatchAdd("*(long *)0x6340,x","eCANB MID8");
+    GEL_WatchAdd("*(long *)0x6342,x","eCANB MCF8");
+    GEL_WatchAdd("*(long *)0x6344,x","eCANB MDL8");
+    GEL_WatchAdd("*(long *)0x6346,x","eCANB MDH8");
+
+    GEL_WatchAdd("*(long *)0x6252,x","eCANB LAM9");
+    GEL_WatchAdd("*(long *)0x6292,x","eCANB MOTS9");
+    GEL_WatchAdd("*(long *)0x62D2,x","eCANB MOTO9");
+    GEL_WatchAdd("*(long *)0x6348,x","eCANB MID9");
+    GEL_WatchAdd("*(long *)0x634A,x","eCANB MCF9");
+    GEL_WatchAdd("*(long *)0x634C,x","eCANB MDL9");
+    GEL_WatchAdd("*(long *)0x634E,x","eCANB MDH9");
+}
+hotmenu eCAN_B_Mailbox_10_to_11_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6254,x","eCANB LAM10");
+    GEL_WatchAdd("*(long *)0x6294,x","eCANB MOTS10");
+    GEL_WatchAdd("*(long *)0x62D4,x","eCANB MOTO10");
+    GEL_WatchAdd("*(long *)0x6350,x","eCANB MID10");
+    GEL_WatchAdd("*(long *)0x6352,x","eCANB MCF10");
+    GEL_WatchAdd("*(long *)0x6354,x","eCANB MDL10");
+    GEL_WatchAdd("*(long *)0x6356,x","eCANB MDH10");
+
+    GEL_WatchAdd("*(long *)0x6256,x","eCANB LAM11");
+    GEL_WatchAdd("*(long *)0x6296,x","eCANB MOTS11");
+    GEL_WatchAdd("*(long *)0x62D6,x","eCANB MOTO11");
+    GEL_WatchAdd("*(long *)0x6358,x","eCANB MID11");
+    GEL_WatchAdd("*(long *)0x635A,x","eCANB MCF11");
+    GEL_WatchAdd("*(long *)0x635C,x","eCANB MDL11");
+    GEL_WatchAdd("*(long *)0x635E,x","eCANB MDH11");
+}
+hotmenu eCAN_B_Mailbox_12_to_13_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6258,x","eCANB LAM12");
+    GEL_WatchAdd("*(long *)0x6298,x","eCANB MOTS12");
+    GEL_WatchAdd("*(long *)0x62D8,x","eCANB MOTO12");
+    GEL_WatchAdd("*(long *)0x6360,x","eCANB MID12");
+    GEL_WatchAdd("*(long *)0x6362,x","eCANB MCF12");
+    GEL_WatchAdd("*(long *)0x6364,x","eCANB MDL12");
+    GEL_WatchAdd("*(long *)0x6366,x","eCANB MDH12");
+
+    GEL_WatchAdd("*(long *)0x625A,x","eCANB LAM13");
+    GEL_WatchAdd("*(long *)0x629A,x","eCANB MOTS13");
+    GEL_WatchAdd("*(long *)0x62DA,x","eCANB MOTO13");
+    GEL_WatchAdd("*(long *)0x6368,x","eCANB MID13");
+    GEL_WatchAdd("*(long *)0x636A,x","eCANB MCF13");
+    GEL_WatchAdd("*(long *)0x636C,x","eCANB MDL13");
+    GEL_WatchAdd("*(long *)0x636E,x","eCANB MDH13");
+}
+hotmenu eCAN_B_Mailbox_14_to_15_Regs()
+{
+    GEL_WatchAdd("*(long *)0x625C,x","eCANB LAM14");
+    GEL_WatchAdd("*(long *)0x629C,x","eCANB MOTS14");
+    GEL_WatchAdd("*(long *)0x62DC,x","eCANB MOTO14");
+    GEL_WatchAdd("*(long *)0x6370,x","eCANB MID14");
+    GEL_WatchAdd("*(long *)0x6372,x","eCANB MCF14");
+    GEL_WatchAdd("*(long *)0x6374,x","eCANB MDL14");
+    GEL_WatchAdd("*(long *)0x6376,x","eCANB MDH14");
+
+    GEL_WatchAdd("*(long *)0x625E,x","eCANB LAM15");
+    GEL_WatchAdd("*(long *)0x629E,x","eCANB MOTS15");
+    GEL_WatchAdd("*(long *)0x62DE,x","eCANB MOTO15");
+    GEL_WatchAdd("*(long *)0x6378,x","eCANB MID15");
+    GEL_WatchAdd("*(long *)0x637A,x","eCANB MCF15");
+    GEL_WatchAdd("*(long *)0x637C,x","eCANB MDL15");
+    GEL_WatchAdd("*(long *)0x637E,x","eCANB MDH15");
+}
+hotmenu eCAN_B_Mailbox_16_to_17_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6260,x","eCANB LAM16");
+    GEL_WatchAdd("*(long *)0x62A0,x","eCANB MOTS16");
+    GEL_WatchAdd("*(long *)0x62E0,x","eCANB MOTO16");
+    GEL_WatchAdd("*(long *)0x6380,x","eCANB MID16");
+    GEL_WatchAdd("*(long *)0x6382,x","eCANB MCF16");
+    GEL_WatchAdd("*(long *)0x6384,x","eCANB MDL16");
+    GEL_WatchAdd("*(long *)0x6386,x","eCANB MDH16");
+
+    GEL_WatchAdd("*(long *)0x6262,x","eCANB LAM17");
+    GEL_WatchAdd("*(long *)0x62A2,x","eCANB MOTS17");
+    GEL_WatchAdd("*(long *)0x62E2,x","eCANB MOTO17");
+    GEL_WatchAdd("*(long *)0x6388,x","eCANB MID17");
+    GEL_WatchAdd("*(long *)0x638A,x","eCANB MCF17");
+    GEL_WatchAdd("*(long *)0x638C,x","eCANB MDL17");
+    GEL_WatchAdd("*(long *)0x638E,x","eCANB MDH17");
+}
+hotmenu eCAN_B_Mailbox_18_to_19_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6264,x","eCANB LAM18");
+    GEL_WatchAdd("*(long *)0x62A4,x","eCANB MOTS18");
+    GEL_WatchAdd("*(long *)0x62E4,x","eCANB MOTO18");
+    GEL_WatchAdd("*(long *)0x6390,x","eCANB MID18");
+    GEL_WatchAdd("*(long *)0x6392,x","eCANB MCF18");
+    GEL_WatchAdd("*(long *)0x6394,x","eCANB MDL18");
+    GEL_WatchAdd("*(long *)0x6396,x","eCANB MDH18");
+
+    GEL_WatchAdd("*(long *)0x6266,x","eCANB LAM19");
+    GEL_WatchAdd("*(long *)0x62A6,x","eCANB MOTS19");
+    GEL_WatchAdd("*(long *)0x62E6,x","eCANB MOTO19");
+    GEL_WatchAdd("*(long *)0x6398,x","eCANB MID19");
+    GEL_WatchAdd("*(long *)0x639A,x","eCANB MCF19");
+    GEL_WatchAdd("*(long *)0x639C,x","eCANB MDL19");
+    GEL_WatchAdd("*(long *)0x639E,x","eCANB MDH19");
+}
+hotmenu eCAN_B_Mailbox_20_to_21_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6268,x","eCANB LAM20");
+    GEL_WatchAdd("*(long *)0x62A8,x","eCANB MOTS20");
+    GEL_WatchAdd("*(long *)0x62E8,x","eCANB MOTO20");
+    GEL_WatchAdd("*(long *)0x63A0,x","eCANB MID20");
+    GEL_WatchAdd("*(long *)0x63A2,x","eCANB MCF20");
+    GEL_WatchAdd("*(long *)0x63A4,x","eCANB MDL20");
+    GEL_WatchAdd("*(long *)0x63A6,x","eCANB MDH20");
+
+    GEL_WatchAdd("*(long *)0x626A,x","eCANB LAM21");
+    GEL_WatchAdd("*(long *)0x62AA,x","eCANB MOTS21");
+    GEL_WatchAdd("*(long *)0x62EA,x","eCANB MOTO21");
+    GEL_WatchAdd("*(long *)0x63A8,x","eCANB MID21");
+    GEL_WatchAdd("*(long *)0x63AA,x","eCANB MCF21");
+    GEL_WatchAdd("*(long *)0x63AC,x","eCANB MDL21");
+    GEL_WatchAdd("*(long *)0x63AE,x","eCANB MDH21");
+}
+hotmenu eCAN_B_Mailbox_22_to_23_Regs()
+{
+    GEL_WatchAdd("*(long *)0x626C,x","eCANB LAM22");
+    GEL_WatchAdd("*(long *)0x62AC,x","eCANB MOTS22");
+    GEL_WatchAdd("*(long *)0x62EC,x","eCANB MOTO22");
+    GEL_WatchAdd("*(long *)0x63B0,x","eCANB MID22");
+    GEL_WatchAdd("*(long *)0x63B2,x","eCANB MCF22");
+    GEL_WatchAdd("*(long *)0x63B4,x","eCANB MDL22");
+    GEL_WatchAdd("*(long *)0x63B6,x","eCANB MDH22");
+
+    GEL_WatchAdd("*(long *)0x626E,x","eCANB LAM23");
+    GEL_WatchAdd("*(long *)0x62AE,x","eCANB MOTS23");
+    GEL_WatchAdd("*(long *)0x62EE,x","eCANB MOTO23");
+    GEL_WatchAdd("*(long *)0x63B8,x","eCANB MID23");
+    GEL_WatchAdd("*(long *)0x63BA,x","eCANB MCF23");
+    GEL_WatchAdd("*(long *)0x63BC,x","eCANB MDL23");
+    GEL_WatchAdd("*(long *)0x63BE,x","eCANB MDH23");
+}
+hotmenu eCAN_B_Mailbox_24_to_25_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6270,x","eCANB LAM24");
+    GEL_WatchAdd("*(long *)0x62B0,x","eCANB MOTS24");
+    GEL_WatchAdd("*(long *)0x62F0,x","eCANB MOTO24");
+    GEL_WatchAdd("*(long *)0x63C0,x","eCANB MID24");
+    GEL_WatchAdd("*(long *)0x63C2,x","eCANB MCF24");
+    GEL_WatchAdd("*(long *)0x63C4,x","eCANB MDL24");
+    GEL_WatchAdd("*(long *)0x63C6,x","eCANB MDH24");
+
+    GEL_WatchAdd("*(long *)0x6272,x","eCANB LAM25");
+    GEL_WatchAdd("*(long *)0x62B2,x","eCANB MOTS25");
+    GEL_WatchAdd("*(long *)0x62F2,x","eCANB MOTO25");
+    GEL_WatchAdd("*(long *)0x63C8,x","eCANB MID25");
+    GEL_WatchAdd("*(long *)0x63CA,x","eCANB MCF25");
+    GEL_WatchAdd("*(long *)0x63CC,x","eCANB MDL25");
+    GEL_WatchAdd("*(long *)0x63CE,x","eCANB MDH25");
+}
+hotmenu eCAN_B_Mailbox_26_to_27_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6274,x","eCANB LAM26");
+    GEL_WatchAdd("*(long *)0x62B4,x","eCANB MOTS26");
+    GEL_WatchAdd("*(long *)0x62F4,x","eCANB MOTO26");
+    GEL_WatchAdd("*(long *)0x63D0,x","eCANB MID26");
+    GEL_WatchAdd("*(long *)0x63D2,x","eCANB MCF26");
+    GEL_WatchAdd("*(long *)0x63D4,x","eCANB MDL26");
+    GEL_WatchAdd("*(long *)0x63D6,x","eCANB MDH26");
+
+    GEL_WatchAdd("*(long *)0x6276,x","eCANB LAM27");
+    GEL_WatchAdd("*(long *)0x62B6,x","eCANB MOTS27");
+    GEL_WatchAdd("*(long *)0x62F6,x","eCANB MOTO27");
+    GEL_WatchAdd("*(long *)0x63D8,x","eCANB MID27");
+    GEL_WatchAdd("*(long *)0x63DA,x","eCANB MCF27");
+    GEL_WatchAdd("*(long *)0x63DC,x","eCANB MDL27");
+    GEL_WatchAdd("*(long *)0x63DE,x","eCANB MDH27");
+}
+hotmenu eCAN_B_Mailbox_28_to_29_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6278,x","eCANB LAM28");
+    GEL_WatchAdd("*(long *)0x62B8,x","eCANB MOTS28");
+    GEL_WatchAdd("*(long *)0x62F8,x","eCANB MOTO28");
+    GEL_WatchAdd("*(long *)0x63E0,x","eCANB MID28");
+    GEL_WatchAdd("*(long *)0x63E2,x","eCANB MCF28");
+    GEL_WatchAdd("*(long *)0x63E4,x","eCANB MDL28");
+    GEL_WatchAdd("*(long *)0x63E6,x","eCANB MDH28");
+
+    GEL_WatchAdd("*(long *)0x627A,x","eCANB LAM29");
+    GEL_WatchAdd("*(long *)0x62BA,x","eCANB MOTS29");
+    GEL_WatchAdd("*(long *)0x62FA,x","eCANB MOTO29");
+    GEL_WatchAdd("*(long *)0x63E8,x","eCANB MID29");
+    GEL_WatchAdd("*(long *)0x63EA,x","eCANB MCF29");
+    GEL_WatchAdd("*(long *)0x63EC,x","eCANB MDL29");
+    GEL_WatchAdd("*(long *)0x63EE,x","eCANB MDH29");
+}
+hotmenu eCAN_B_Mailbox_30_to_31_Regs()
+{
+    GEL_WatchAdd("*(long *)0x627C,x","eCANB LAM30");
+    GEL_WatchAdd("*(long *)0x62BC,x","eCANB MOTS30");
+    GEL_WatchAdd("*(long *)0x62FC,x","eCANB MOTO30");
+    GEL_WatchAdd("*(long *)0x63F0,x","eCANB MID30");
+    GEL_WatchAdd("*(long *)0x63F2,x","eCANB MCF30");
+    GEL_WatchAdd("*(long *)0x63F4,x","eCANB MDL30");
+    GEL_WatchAdd("*(long *)0x63F6,x","eCANB MDH30");
+
+    GEL_WatchAdd("*(long *)0x627E,x","eCANB LAM31");
+    GEL_WatchAdd("*(long *)0x62BE,x","eCANB MOTS31");
+    GEL_WatchAdd("*(long *)0x62FE,x","eCANB MOTO31");
+    GEL_WatchAdd("*(long *)0x63F8,x","eCANB MID31");
+    GEL_WatchAdd("*(long *)0x63FA,x","eCANB MCF31");
+    GEL_WatchAdd("*(long *)0x63FC,x","eCANB MDL31");
+    GEL_WatchAdd("*(long *)0x63FE,x","eCANB MDH31");
+}
+
+
+/********************************************************************/
+/* Enhanced Capture Registers                                       */
+/********************************************************************/
+menuitem "Watch eCAP Registers";
+
+hotmenu eCAP1_All_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6A00,x","eCAP1 TSCNT");
+    GEL_WatchAdd("*(long *)0x6A02,x","eCAP1 CNTPHS");
+    GEL_WatchAdd("*(long *)0x6A04,x","eCAP1 CAP1");
+    GEL_WatchAdd("*(long *)0x6A06,x","eCAP1 CAP2");
+    GEL_WatchAdd("*(long *)0x6A08,x","eCAP1 CAP3");
+    GEL_WatchAdd("*(long *)0x6A0A,x","eCAP1 CAP4");
+    GEL_WatchAdd("*0x6A14,x","eCAP1 ECCTL1");
+    GEL_WatchAdd("*0x6A15,x","eCAP1 ECCTL2");
+    GEL_WatchAdd("*0x6A16,x","eCAP1 ECEINT");
+    GEL_WatchAdd("*0x6A17,x","eCAP1 ECFLG");
+    GEL_WatchAdd("*0x6A18,x","eCAP1 ECCLR");
+    GEL_WatchAdd("*0x6A19,x","eCAP1 ECFRC");
+}
+hotmenu eCAP2_All_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6A20,x","eCAP2 TSCNT");
+    GEL_WatchAdd("*(long *)0x6A22,x","eCAP2 CNTPHS");
+    GEL_WatchAdd("*(long *)0x6A24,x","eCAP2 CAP1");
+    GEL_WatchAdd("*(long *)0x6A26,x","eCAP2 CAP2");
+    GEL_WatchAdd("*(long *)0x6A28,x","eCAP2 CAP3");
+    GEL_WatchAdd("*(long *)0x6A2A,x","eCAP2 CAP4");
+    GEL_WatchAdd("*0x6A34,x","eCAP2 ECCTL1");
+    GEL_WatchAdd("*0x6A35,x","eCAP2 ECCTL2");
+    GEL_WatchAdd("*0x6A36,x","eCAP2 ECEINT");
+    GEL_WatchAdd("*0x6A37,x","eCAP2 ECFLG");
+    GEL_WatchAdd("*0x6A38,x","eCAP2 ECCLR");
+    GEL_WatchAdd("*0x6A39,x","eCAP2 ECFRC");
+}
+hotmenu eCAP3_All_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6A40,x","eCAP3 TSCNT");
+    GEL_WatchAdd("*(long *)0x6A42,x","eCAP3 CNTPHS");
+    GEL_WatchAdd("*(long *)0x6A44,x","eCAP3 CAP1");
+    GEL_WatchAdd("*(long *)0x6A46,x","eCAP3 CAP2");
+    GEL_WatchAdd("*(long *)0x6A48,x","eCAP3 CAP3");
+    GEL_WatchAdd("*(long *)0x6A4A,x","eCAP3 CAP4");
+    GEL_WatchAdd("*0x6A54,x","eCAP3 ECCTL1");
+    GEL_WatchAdd("*0x6A55,x","eCAP3 ECCTL2");
+    GEL_WatchAdd("*0x6A56,x","eCAP3 ECEINT");
+    GEL_WatchAdd("*0x6A57,x","eCAP3 ECFLG");
+    GEL_WatchAdd("*0x6A58,x","eCAP3 ECCLR");
+    GEL_WatchAdd("*0x6A59,x","eCAP3 ECFRC");
+}
+hotmenu eCAP4_All_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6A60,x","eCAP4 TSCNT");
+    GEL_WatchAdd("*(long *)0x6A62,x","eCAP4 CNTPHS");
+    GEL_WatchAdd("*(long *)0x6A64,x","eCAP4 CAP1");
+    GEL_WatchAdd("*(long *)0x6A66,x","eCAP4 CAP2");
+    GEL_WatchAdd("*(long *)0x6A68,x","eCAP4 CAP3");
+    GEL_WatchAdd("*(long *)0x6A6A,x","eCAP4 CAP4");
+    GEL_WatchAdd("*0x6A74,x","eCAP4 ECCTL1");
+    GEL_WatchAdd("*0x6A75,x","eCAP4 ECCTL2");
+    GEL_WatchAdd("*0x6A76,x","eCAP4 ECEINT");
+    GEL_WatchAdd("*0x6A77,x","eCAP4 ECFLG");
+    GEL_WatchAdd("*0x6A78,x","eCAP4 ECCLR");
+    GEL_WatchAdd("*0x6A79,x","eCAP4 ECFRC");
+}
+hotmenu eCAP5_All_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6A80,x","eCAP5 TSCNT");
+    GEL_WatchAdd("*(long *)0x6A82,x","eCAP5 CNTPHS");
+    GEL_WatchAdd("*(long *)0x6A84,x","eCAP5 CAP1");
+    GEL_WatchAdd("*(long *)0x6A86,x","eCAP5 CAP2");
+    GEL_WatchAdd("*(long *)0x6A88,x","eCAP5 CAP3");
+    GEL_WatchAdd("*(long *)0x6A8A,x","eCAP5 CAP4");
+    GEL_WatchAdd("*0x6A94,x","eCAP5 ECCTL1");
+    GEL_WatchAdd("*0x6A95,x","eCAP5 ECCTL2");
+    GEL_WatchAdd("*0x6A96,x","eCAP5 ECEINT");
+    GEL_WatchAdd("*0x6A97,x","eCAP5 ECFLG");
+    GEL_WatchAdd("*0x6A98,x","eCAP5 ECCLR");
+    GEL_WatchAdd("*0x6A99,x","eCAP5 ECFRC");
+}
+hotmenu eCAP6_All_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6AA0,x","eCAP6 TSCNT");
+    GEL_WatchAdd("*(long *)0x6AA2,x","eCAP6 CNTPHS");
+    GEL_WatchAdd("*(long *)0x6AA4,x","eCAP6 CAP1");
+    GEL_WatchAdd("*(long *)0x6AA6,x","eCAP6 CAP2");
+    GEL_WatchAdd("*(long *)0x6AA8,x","eCAP6 CAP3");
+    GEL_WatchAdd("*(long *)0x6AAA,x","eCAP6 CAP4");
+    GEL_WatchAdd("*0x6AB4,x","eCAP6 ECCTL1");
+    GEL_WatchAdd("*0x6AB5,x","eCAP6 ECCTL2");
+    GEL_WatchAdd("*0x6AB6,x","eCAP6 ECEINT");
+    GEL_WatchAdd("*0x6AB7,x","eCAP6 ECFLG");
+    GEL_WatchAdd("*0x6AB8,x","eCAP6 ECCLR");
+    GEL_WatchAdd("*0x6AB9,x","eCAP6 ECFRC");
+}
+
+/********************************************************************/
+/* Enhanced PWM Registers                                           */
+/********************************************************************/
+menuitem "Watch ePWM Registers";
+
+hotmenu ePWM1_All_Regs()
+{
+    GEL_WatchAdd("*0x6800,x","ePWM1 TBCTL");
+    GEL_WatchAdd("*0x6801,x","ePWM1 TBSTS");
+    GEL_WatchAdd("*0x6802,x","ePWM1 TBPHSHR");
+    GEL_WatchAdd("*0x6803,x","ePWM1 TBPHS");
+    GEL_WatchAdd("*0x6804,x","ePWM1 TBCTR");
+    GEL_WatchAdd("*0x6805,x","ePWM1 TBPRD");
+    GEL_WatchAdd("*0x6807,x","ePWM1 CMPCTL");
+    GEL_WatchAdd("*0x6808,x","ePWM1 CMPAHR");
+    GEL_WatchAdd("*0x6809,x","ePWM1 CMPA");
+    GEL_WatchAdd("*0x680A,x","ePWM1 CMPB");
+    GEL_WatchAdd("*0x680B,x","ePWM1 AQCTLA");
+    GEL_WatchAdd("*0x680C,x","ePWM1 AQCTLB");
+    GEL_WatchAdd("*0x680D,x","ePWM1 AQSFRC");
+    GEL_WatchAdd("*0x680E,x","ePWM1 AQCSFRC");
+    GEL_WatchAdd("*0x680F,x","ePWM1 DBCTL");
+    GEL_WatchAdd("*0x6810,x","ePWM1 DBRED");
+    GEL_WatchAdd("*0x6811,x","ePWM1 DBFED");
+    GEL_WatchAdd("*0x6812,x","ePWM1 TZSEL");
+    GEL_WatchAdd("*0x6813,x","ePWM1 TZDCSEL");
+    GEL_WatchAdd("*0x6814,x","ePWM1 TZCTL");
+    GEL_WatchAdd("*0x6815,x","ePWM1 TZEINT");
+    GEL_WatchAdd("*0x6816,x","ePWM1 TZFLG");
+    GEL_WatchAdd("*0x6817,x","ePWM1 TZCLR");
+    GEL_WatchAdd("*0x6818,x","ePWM1 TZFRC");
+    GEL_WatchAdd("*0x6819,x","ePWM1 ETSEL");
+    GEL_WatchAdd("*0x681A,x","ePWM1 ETPS");
+    GEL_WatchAdd("*0x681B,x","ePWM1 ETFLG");
+    GEL_WatchAdd("*0x681C,x","ePWM1 ETCLR");
+    GEL_WatchAdd("*0x681D,x","ePWM1 ETFRC");
+    GEL_WatchAdd("*0x681E,x","ePWM1 PCCTL");
+    GEL_WatchAdd("*0x6820,x","ePWM1 HRCNFG");
+}
+hotmenu ePWM1_TB_Regs()
+{
+    GEL_WatchAdd("*0x6800,x","ePWM1 TBCTL");
+    GEL_WatchAdd("*0x6801,x","ePWM1 TBSTS");
+    GEL_WatchAdd("*0x6802,x","ePWM1 TBPHSHR");
+    GEL_WatchAdd("*0x6803,x","ePWM1 TBPHS");
+    GEL_WatchAdd("*0x6804,x","ePWM1 TBCTR");
+    GEL_WatchAdd("*0x6805,x","ePWM1 TBPRD");
+}
+hotmenu ePWM1_CMP_Regs()
+{
+    GEL_WatchAdd("*0x6807,x","ePWM1 CMPCTL");
+    GEL_WatchAdd("*0x6808,x","ePWM1 CMPAHR");
+    GEL_WatchAdd("*0x6809,x","ePWM1 CMPA");
+    GEL_WatchAdd("*0x680A,x","ePWM1 CMPB");
+}
+hotmenu ePWM1_AQ_Regs()
+{
+    GEL_WatchAdd("*0x680B,x","ePWM1 AQCTLA");
+    GEL_WatchAdd("*0x680C,x","ePWM1 AQCTLB");
+    GEL_WatchAdd("*0x680D,x","ePWM1 AQSFRC");
+    GEL_WatchAdd("*0x680E,x","ePWM1 AQCSFRC");
+}
+hotmenu ePWM1_DB_Regs()
+{
+    GEL_WatchAdd("*0x680F,x","ePWM1 DBCTL");
+    GEL_WatchAdd("*0x6810,x","ePWM1 DBRED");
+    GEL_WatchAdd("*0x6811,x","ePWM1 DBFED");
+}
+hotmenu ePWM1_TZ_Regs()
+{
+    GEL_WatchAdd("*0x6812,x","ePWM1 TZSEL");
+    GEL_WatchAdd("*0x6814,x","ePWM1 TZCTL");
+    GEL_WatchAdd("*0x6815,x","ePWM1 TZEINT");
+    GEL_WatchAdd("*0x6816,x","ePWM1 TZFLG");
+    GEL_WatchAdd("*0x6817,x","ePWM1 TZCLR");
+    GEL_WatchAdd("*0x6818,x","ePWM1 TZFRC");
+}
+hotmenu ePWM1_ET_Regs()
+{
+    GEL_WatchAdd("*0x6819,x","ePWM1 ETSEL");
+    GEL_WatchAdd("*0x681A,x","ePWM1 ETPS");
+    GEL_WatchAdd("*0x681B,x","ePWM1 ETFLG");
+    GEL_WatchAdd("*0x681C,x","ePWM1 ETCLR");
+    GEL_WatchAdd("*0x681D,x","ePWM1 ETFRC");
+}
+hotmenu ePWM2_All_Regs()
+{
+    GEL_WatchAdd("*0x6840,x","ePWM2 TBCTL");
+    GEL_WatchAdd("*0x6841,x","ePWM2 TBSTS");
+    GEL_WatchAdd("*0x6842,x","ePWM2 TBPHSHR");
+    GEL_WatchAdd("*0x6843,x","ePWM2 TBPHS");
+    GEL_WatchAdd("*0x6844,x","ePWM2 TBCTR");
+    GEL_WatchAdd("*0x6845,x","ePWM2 TBPRD");
+    GEL_WatchAdd("*0x6847,x","ePWM2 CMPCTL");
+    GEL_WatchAdd("*0x6848,x","ePWM2 CMPAHR");
+    GEL_WatchAdd("*0x6849,x","ePWM2 CMPA");
+    GEL_WatchAdd("*0x684A,x","ePWM2 CMPB");
+    GEL_WatchAdd("*0x684B,x","ePWM2 AQCTLA");
+    GEL_WatchAdd("*0x684C,x","ePWM2 AQCTLB");
+    GEL_WatchAdd("*0x684D,x","ePWM2 AQSFRC");
+    GEL_WatchAdd("*0x684E,x","ePWM2 AQCSFRC");
+    GEL_WatchAdd("*0x684F,x","ePWM2 DBCTL");
+    GEL_WatchAdd("*0x6850,x","ePWM2 DBRED");
+    GEL_WatchAdd("*0x6851,x","ePWM2 DBFED");
+    GEL_WatchAdd("*0x6852,x","ePWM2 TZSEL");
+    GEL_WatchAdd("*0x6853,x","ePWM2 TZDCSEL");
+    GEL_WatchAdd("*0x6854,x","ePWM2 TZCTL");
+    GEL_WatchAdd("*0x6855,x","ePWM2 TZEINT");
+    GEL_WatchAdd("*0x6856,x","ePWM2 TZFLG");
+    GEL_WatchAdd("*0x6857,x","ePWM2 TZCLR");
+    GEL_WatchAdd("*0x6858,x","ePWM2 TZFRC");
+    GEL_WatchAdd("*0x6859,x","ePWM2 ETSEL");
+    GEL_WatchAdd("*0x685A,x","ePWM2 ETPS");
+    GEL_WatchAdd("*0x685B,x","ePWM2 ETFLG");
+    GEL_WatchAdd("*0x685C,x","ePWM2 ETCLR");
+    GEL_WatchAdd("*0x685D,x","ePWM2 ETFRC");
+    GEL_WatchAdd("*0x685E,x","ePWM2 PCCTL");
+    GEL_WatchAdd("*0x6860,x","ePWM2 HRCNFG");
+}
+hotmenu ePWM2_TB_Regs()
+{
+    GEL_WatchAdd("*0x6840,x","ePWM2 TBCTL");
+    GEL_WatchAdd("*0x6841,x","ePWM2 TBSTS");
+    GEL_WatchAdd("*0x6842,x","ePWM2 TBPHSHR");
+    GEL_WatchAdd("*0x6843,x","ePWM2 TBPHS");
+    GEL_WatchAdd("*0x6844,x","ePWM2 TBCTR");
+    GEL_WatchAdd("*0x6845,x","ePWM2 TBPRD");
+}
+hotmenu ePWM2_CMP_Regs()
+{
+    GEL_WatchAdd("*0x6847,x","ePWM2 CMPCTL");
+    GEL_WatchAdd("*0x6848,x","ePWM2 CMPAHR");
+    GEL_WatchAdd("*0x6849,x","ePWM2 CMPA");
+    GEL_WatchAdd("*0x684A,x","ePWM2 CMPB");
+}
+hotmenu ePWM2_AQ_Regs()
+{
+    GEL_WatchAdd("*0x684B,x","ePWM2 AQCTLA");
+    GEL_WatchAdd("*0x684C,x","ePWM2 AQCTLB");
+    GEL_WatchAdd("*0x684D,x","ePWM2 AQSFRC");
+    GEL_WatchAdd("*0x684E,x","ePWM2 AQCSFRC");
+}
+hotmenu ePWM2_DB_Regs()
+{
+    GEL_WatchAdd("*0x684F,x","ePWM2 DBCTL");
+    GEL_WatchAdd("*0x6850,x","ePWM2 DBRED");
+    GEL_WatchAdd("*0x6851,x","ePWM2 DBFED");
+}
+hotmenu ePWM2_TZ_Regs()
+{
+    GEL_WatchAdd("*0x6852,x","ePWM2 TZSEL");
+    GEL_WatchAdd("*0x6854,x","ePWM2 TZCTL");
+    GEL_WatchAdd("*0x6855,x","ePWM2 TZEINT");
+    GEL_WatchAdd("*0x6856,x","ePWM2 TZFLG");
+    GEL_WatchAdd("*0x6857,x","ePWM2 TZCLR");
+    GEL_WatchAdd("*0x6858,x","ePWM2 TZFRC");
+}
+hotmenu ePWM2_ET_Regs()
+{
+    GEL_WatchAdd("*0x6859,x","ePWM2 ETSEL");
+    GEL_WatchAdd("*0x685A,x","ePWM2 ETPS");
+    GEL_WatchAdd("*0x685B,x","ePWM2 ETFLG");
+    GEL_WatchAdd("*0x685C,x","ePWM2 ETCLR");
+    GEL_WatchAdd("*0x685D,x","ePWM2 ETFRC");
+}
+hotmenu ePWM3_All_Regs()
+{
+    GEL_WatchAdd("*0x6880,x","ePWM3 TBCTL");
+    GEL_WatchAdd("*0x6881,x","ePWM3 TBSTS");
+    GEL_WatchAdd("*0x6882,x","ePWM3 TBPHSHR");
+    GEL_WatchAdd("*0x6883,x","ePWM3 TBPHS");
+    GEL_WatchAdd("*0x6884,x","ePWM3 TBCTR");
+    GEL_WatchAdd("*0x6885,x","ePWM3 TBPRD");
+    GEL_WatchAdd("*0x6887,x","ePWM3 CMPCTL");
+    GEL_WatchAdd("*0x6888,x","ePWM3 CMPAHR");
+    GEL_WatchAdd("*0x6889,x","ePWM3 CMPA");
+    GEL_WatchAdd("*0x688A,x","ePWM3 CMPB");
+    GEL_WatchAdd("*0x688B,x","ePWM3 AQCTLA");
+    GEL_WatchAdd("*0x688C,x","ePWM3 AQCTLB");
+    GEL_WatchAdd("*0x688D,x","ePWM3 AQSFRC");
+    GEL_WatchAdd("*0x688E,x","ePWM3 AQCSFRC");
+    GEL_WatchAdd("*0x688F,x","ePWM3 DBCTL");
+    GEL_WatchAdd("*0x6890,x","ePWM3 DBRED");
+    GEL_WatchAdd("*0x6891,x","ePWM3 DBFED");
+    GEL_WatchAdd("*0x6892,x","ePWM3 TZSEL");
+    GEL_WatchAdd("*0x6893,x","ePWM3 TZDCSEL");
+    GEL_WatchAdd("*0x6894,x","ePWM3 TZCTL");
+    GEL_WatchAdd("*0x6895,x","ePWM3 TZEINT");
+    GEL_WatchAdd("*0x6896,x","ePWM3 TZFLG");
+    GEL_WatchAdd("*0x6897,x","ePWM3 TZCLR");
+    GEL_WatchAdd("*0x6898,x","ePWM3 TZFRC");
+    GEL_WatchAdd("*0x6899,x","ePWM3 ETSEL");
+    GEL_WatchAdd("*0x689A,x","ePWM3 ETPS");
+    GEL_WatchAdd("*0x689B,x","ePWM3 ETFLG");
+    GEL_WatchAdd("*0x689C,x","ePWM3 ETCLR");
+    GEL_WatchAdd("*0x689D,x","ePWM3 ETFRC");
+    GEL_WatchAdd("*0x689E,x","ePWM3 PCCTL");
+    GEL_WatchAdd("*0x68A0,x","ePWM3 HRCNFG");
+}
+hotmenu ePWM3_TB_Regs()
+{
+    GEL_WatchAdd("*0x6880,x","ePWM3 TBCTL");
+    GEL_WatchAdd("*0x6881,x","ePWM3 TBSTS");
+    GEL_WatchAdd("*0x6882,x","ePWM3 TBPHSHR");
+    GEL_WatchAdd("*0x6883,x","ePWM3 TBPHS");
+    GEL_WatchAdd("*0x6884,x","ePWM3 TBCTR");
+    GEL_WatchAdd("*0x6885,x","ePWM3 TBPRD");
+}
+hotmenu ePWM3_CMP_Regs()
+{
+    GEL_WatchAdd("*0x6887,x","ePWM3 CMPCTL");
+    GEL_WatchAdd("*0x6888,x","ePWM3 CMPAHR");
+    GEL_WatchAdd("*0x6889,x","ePWM3 CMPA");
+    GEL_WatchAdd("*0x688A,x","ePWM3 CMPB");
+}
+hotmenu ePWM3_AQ_Regs()
+{
+    GEL_WatchAdd("*0x688B,x","ePWM3 AQCTLA");
+    GEL_WatchAdd("*0x688C,x","ePWM3 AQCTLB");
+    GEL_WatchAdd("*0x688D,x","ePWM3 AQSFRC");
+    GEL_WatchAdd("*0x688E,x","ePWM3 AQCSFRC");
+}
+hotmenu ePWM3_DB_Regs()
+{
+    GEL_WatchAdd("*0x688F,x","ePWM3 DBCTL");
+    GEL_WatchAdd("*0x6890,x","ePWM3 DBRED");
+    GEL_WatchAdd("*0x6891,x","ePWM3 DBFED");
+}
+hotmenu ePWM3_TZ_Regs()
+{
+    GEL_WatchAdd("*0x6892,x","ePWM3 TZSEL");
+    GEL_WatchAdd("*0x6894,x","ePWM3 TZCTL");
+    GEL_WatchAdd("*0x6895,x","ePWM3 TZEINT");
+    GEL_WatchAdd("*0x6896,x","ePWM3 TZFLG");
+    GEL_WatchAdd("*0x6897,x","ePWM3 TZCLR");
+    GEL_WatchAdd("*0x6898,x","ePWM3 TZFRC");
+}
+hotmenu ePWM3_ET_Regs()
+{
+    GEL_WatchAdd("*0x6899,x","ePWM3 ETSEL");
+    GEL_WatchAdd("*0x689A,x","ePWM3 ETPS");
+    GEL_WatchAdd("*0x689B,x","ePWM3 ETFLG");
+    GEL_WatchAdd("*0x689C,x","ePWM3 ETCLR");
+    GEL_WatchAdd("*0x689D,x","ePWM3 ETFRC");
+}
+hotmenu ePWM4_All_Regs()
+{
+    GEL_WatchAdd("*0x68C0,x","ePWM4 TBCTL");
+    GEL_WatchAdd("*0x68C1,x","ePWM4 TBSTS");
+    GEL_WatchAdd("*0x68C2,x","ePWM4 TBPHSHR");
+    GEL_WatchAdd("*0x68C3,x","ePWM4 TBPHS");
+    GEL_WatchAdd("*0x68C4,x","ePWM4 TBCTR");
+    GEL_WatchAdd("*0x68C5,x","ePWM4 TBPRD");
+    GEL_WatchAdd("*0x68C7,x","ePWM4 CMPCTL");
+    GEL_WatchAdd("*0x68C8,x","ePWM4 CMPAHR");
+    GEL_WatchAdd("*0x68C9,x","ePWM4 CMPA");
+    GEL_WatchAdd("*0x68CA,x","ePWM4 CMPB");
+    GEL_WatchAdd("*0x68CB,x","ePWM4 AQCTLA");
+    GEL_WatchAdd("*0x68CC,x","ePWM4 AQCTLB");
+    GEL_WatchAdd("*0x68CD,x","ePWM4 AQSFRC");
+    GEL_WatchAdd("*0x68CE,x","ePWM4 AQCSFRC");
+    GEL_WatchAdd("*0x68CF,x","ePWM4 DBCTL");
+    GEL_WatchAdd("*0x68D0,x","ePWM4 DBRED");
+    GEL_WatchAdd("*0x68D1,x","ePWM4 DBFED");
+    GEL_WatchAdd("*0x68D2,x","ePWM4 TZSEL");
+    GEL_WatchAdd("*0x68D3,x","ePWM4 TZDCSEL");
+    GEL_WatchAdd("*0x68D4,x","ePWM4 TZCTL");
+    GEL_WatchAdd("*0x68D5,x","ePWM4 TZEINT");
+    GEL_WatchAdd("*0x68D6,x","ePWM4 TZFLG");
+    GEL_WatchAdd("*0x68D7,x","ePWM4 TZCLR");
+    GEL_WatchAdd("*0x68D8,x","ePWM4 TZFRC");
+    GEL_WatchAdd("*0x68D9,x","ePWM4 ETSEL");
+    GEL_WatchAdd("*0x68DA,x","ePWM4 ETPS");
+    GEL_WatchAdd("*0x68DB,x","ePWM4 ETFLG");
+    GEL_WatchAdd("*0x68DC,x","ePWM4 ETCLR");
+    GEL_WatchAdd("*0x68DD,x","ePWM4 ETFRC");
+    GEL_WatchAdd("*0x68DE,x","ePWM4 PCCTL");
+    GEL_WatchAdd("*0x68E0,x","ePWM4 HRCNFG");
+}
+hotmenu ePWM4_TB_Regs()
+{
+    GEL_WatchAdd("*0x68C0,x","ePWM4 TBCTL");
+    GEL_WatchAdd("*0x68C1,x","ePWM4 TBSTS");
+    GEL_WatchAdd("*0x68C2,x","ePWM4 TBPHSHR");
+    GEL_WatchAdd("*0x68C3,x","ePWM4 TBPHS");
+    GEL_WatchAdd("*0x68C4,x","ePWM4 TBCTR");
+    GEL_WatchAdd("*0x68C5,x","ePWM4 TBPRD");
+}
+hotmenu ePWM4_CMP_Regs()
+{
+    GEL_WatchAdd("*0x68C7,x","ePWM4 CMPCTL");
+    GEL_WatchAdd("*0x68C8,x","ePWM4 CMPAHR");
+    GEL_WatchAdd("*0x68C9,x","ePWM4 CMPA");
+    GEL_WatchAdd("*0x68CA,x","ePWM4 CMPB");
+}
+hotmenu ePWM4_AQ_Regs()
+{
+    GEL_WatchAdd("*0x68CB,x","ePWM4 AQCTLA");
+    GEL_WatchAdd("*0x68CC,x","ePWM4 AQCTLB");
+    GEL_WatchAdd("*0x68CD,x","ePWM4 AQSFRC");
+    GEL_WatchAdd("*0x68CE,x","ePWM4 AQCSFRC");
+}
+hotmenu ePWM4_DB_Regs()
+{
+    GEL_WatchAdd("*0x68CF,x","ePWM4 DBCTL");
+    GEL_WatchAdd("*0x68D0,x","ePWM4 DBRED");
+    GEL_WatchAdd("*0x68D1,x","ePWM4 DBFED"); 
+}
+hotmenu ePWM4_TZ_Regs()
+{
+    GEL_WatchAdd("*0x68D2,x","ePWM4 TZSEL");
+    GEL_WatchAdd("*0x68D4,x","ePWM4 TZCTL");
+    GEL_WatchAdd("*0x68D5,x","ePWM4 TZEINT");
+    GEL_WatchAdd("*0x68D6,x","ePWM4 TZFLG");
+    GEL_WatchAdd("*0x68D7,x","ePWM4 TZCLR");
+    GEL_WatchAdd("*0x68D8,x","ePWM4 TZFRC");
+}
+hotmenu ePWM4_ET_Regs()
+{
+    GEL_WatchAdd("*0x68D9,x","ePWM4 ETSEL");
+    GEL_WatchAdd("*0x68DA,x","ePWM4 ETPS");
+    GEL_WatchAdd("*0x68DB,x","ePWM4 ETFLG");
+    GEL_WatchAdd("*0x68DC,x","ePWM4 ETCLR");
+    GEL_WatchAdd("*0x68DD,x","ePWM4 ETFRC");
+}
+hotmenu ePWM5_All_Regs()
+{
+    GEL_WatchAdd("*0x6900,x","ePWM5 TBCTL");
+    GEL_WatchAdd("*0x6901,x","ePWM5 TBSTS");
+    GEL_WatchAdd("*0x6902,x","ePWM5 TBPHSHR");
+    GEL_WatchAdd("*0x6903,x","ePWM5 TBPHS");
+    GEL_WatchAdd("*0x6904,x","ePWM5 TBCTR");
+    GEL_WatchAdd("*0x6905,x","ePWM5 TBPRD");
+    GEL_WatchAdd("*0x6907,x","ePWM5 CMPCTL");
+    GEL_WatchAdd("*0x6908,x","ePWM5 CMPAHR");
+    GEL_WatchAdd("*0x6909,x","ePWM5 CMPA");
+    GEL_WatchAdd("*0x690A,x","ePWM5 CMPB");
+    GEL_WatchAdd("*0x690B,x","ePWM5 AQCTLA");
+    GEL_WatchAdd("*0x690C,x","ePWM5 AQCTLB");
+    GEL_WatchAdd("*0x690D,x","ePWM5 AQSFRC");
+    GEL_WatchAdd("*0x690E,x","ePWM5 AQCSFRC");
+    GEL_WatchAdd("*0x690F,x","ePWM5 DBCTL");
+    GEL_WatchAdd("*0x6910,x","ePWM5 DBRED");
+    GEL_WatchAdd("*0x6911,x","ePWM5 DBFED");
+    GEL_WatchAdd("*0x6912,x","ePWM5 TZSEL");
+    GEL_WatchAdd("*0x6913,x","ePWM5 TZDCSEL");
+    GEL_WatchAdd("*0x6914,x","ePWM5 TZCTL");
+    GEL_WatchAdd("*0x6915,x","ePWM5 TZEINT");
+    GEL_WatchAdd("*0x6916,x","ePWM5 TZFLG");
+    GEL_WatchAdd("*0x6917,x","ePWM5 TZCLR");
+    GEL_WatchAdd("*0x6918,x","ePWM5 TZFRC");
+    GEL_WatchAdd("*0x6919,x","ePWM5 ETSEL");
+    GEL_WatchAdd("*0x691A,x","ePWM5 ETPS");
+    GEL_WatchAdd("*0x691B,x","ePWM5 ETFLG");
+    GEL_WatchAdd("*0x691C,x","ePWM5 ETCLR");
+    GEL_WatchAdd("*0x691D,x","ePWM5 ETFRC");
+    GEL_WatchAdd("*0x691E,x","ePWM5 PCCTL");
+    GEL_WatchAdd("*0x6920,x","ePWM5 HRCNFG");
+}
+hotmenu ePWM5_TB_Regs()
+{
+    GEL_WatchAdd("*0x6900,x","ePWM5 TBCTL");
+    GEL_WatchAdd("*0x6901,x","ePWM5 TBSTS");
+    GEL_WatchAdd("*0x6902,x","ePWM5 TBPHSHR");
+    GEL_WatchAdd("*0x6903,x","ePWM5 TBPHS");
+    GEL_WatchAdd("*0x6904,x","ePWM5 TBCTR");
+    GEL_WatchAdd("*0x6905,x","ePWM5 TBPRD");
+}
+hotmenu ePWM5_CMP_Regs()
+{
+    GEL_WatchAdd("*0x6907,x","ePWM5 CMPCTL");
+    GEL_WatchAdd("*0x6908,x","ePWM5 CMPAHR");
+    GEL_WatchAdd("*0x6909,x","ePWM5 CMPA");
+    GEL_WatchAdd("*0x690A,x","ePWM5 CMPB");
+}
+hotmenu ePWM5_AQ_Regs()
+{
+    GEL_WatchAdd("*0x690B,x","ePWM5 AQCTLA");
+    GEL_WatchAdd("*0x690C,x","ePWM5 AQCTLB");
+    GEL_WatchAdd("*0x690D,x","ePWM5 AQSFRC");
+    GEL_WatchAdd("*0x690E,x","ePWM5 AQCSFRC");
+}
+hotmenu ePWM5_DB_Regs()
+{
+    GEL_WatchAdd("*0x690F,x","ePWM5 DBCTL");
+    GEL_WatchAdd("*0x6910,x","ePWM5 DBRED");
+    GEL_WatchAdd("*0x6911,x","ePWM5 DBFED"); 
+}
+hotmenu ePWM5_TZ_Regs()
+{
+    GEL_WatchAdd("*0x6912,x","ePWM5 TZSEL");
+    GEL_WatchAdd("*0x6914,x","ePWM5 TZCTL");
+    GEL_WatchAdd("*0x6915,x","ePWM5 TZEINT");
+    GEL_WatchAdd("*0x6916,x","ePWM5 TZFLG");
+    GEL_WatchAdd("*0x6917,x","ePWM5 TZCLR");
+    GEL_WatchAdd("*0x6918,x","ePWM5 TZFRC");
+}
+hotmenu ePWM5_ET_Regs()
+{
+    GEL_WatchAdd("*0x6919,x","ePWM5 ETSEL");
+    GEL_WatchAdd("*0x691A,x","ePWM5 ETPS");
+    GEL_WatchAdd("*0x691B,x","ePWM5 ETFLG");
+    GEL_WatchAdd("*0x691C,x","ePWM5 ETCLR");
+    GEL_WatchAdd("*0x691D,x","ePWM5 ETFRC");
+}
+hotmenu ePWM6_All_Regs()
+{
+    GEL_WatchAdd("*0x6940,x","ePWM6 TBCTL");
+    GEL_WatchAdd("*0x6941,x","ePWM6 TBSTS");
+    GEL_WatchAdd("*0x6942,x","ePWM6 TBPHSHR");
+    GEL_WatchAdd("*0x6943,x","ePWM6 TBPHS");
+    GEL_WatchAdd("*0x6944,x","ePWM6 TBCTR");
+    GEL_WatchAdd("*0x6945,x","ePWM6 TBPRD");
+    GEL_WatchAdd("*0x6947,x","ePWM6 CMPCTL");
+    GEL_WatchAdd("*0x6948,x","ePWM6 CMPAHR");
+    GEL_WatchAdd("*0x6949,x","ePWM6 CMPA");
+    GEL_WatchAdd("*0x694A,x","ePWM6 CMPB");
+    GEL_WatchAdd("*0x694B,x","ePWM6 AQCTLA");
+    GEL_WatchAdd("*0x694C,x","ePWM6 AQCTLB");
+    GEL_WatchAdd("*0x694D,x","ePWM6 AQSFRC");
+    GEL_WatchAdd("*0x694E,x","ePWM6 AQCSFRC");
+    GEL_WatchAdd("*0x694F,x","ePWM6 DBCTL");
+    GEL_WatchAdd("*0x6950,x","ePWM6 DBRED");
+    GEL_WatchAdd("*0x6951,x","ePWM6 DBFED");
+    GEL_WatchAdd("*0x6952,x","ePWM6 TZSEL");
+    GEL_WatchAdd("*0x6953,x","ePWM6 TZDCSEL");
+    GEL_WatchAdd("*0x6954,x","ePWM6 TZCTL");
+    GEL_WatchAdd("*0x6955,x","ePWM6 TZEINT");
+    GEL_WatchAdd("*0x6956,x","ePWM6 TZFLG");
+    GEL_WatchAdd("*0x6957,x","ePWM6 TZCLR");
+    GEL_WatchAdd("*0x6958,x","ePWM6 TZFRC");
+    GEL_WatchAdd("*0x6959,x","ePWM6 ETSEL");
+    GEL_WatchAdd("*0x695A,x","ePWM6 ETPS");
+    GEL_WatchAdd("*0x695B,x","ePWM6 ETFLG");
+    GEL_WatchAdd("*0x695C,x","ePWM6 ETCLR");
+    GEL_WatchAdd("*0x695D,x","ePWM6 ETFRC");
+    GEL_WatchAdd("*0x695E,x","ePWM6 PCCTL");
+    GEL_WatchAdd("*0x6960,x","ePWM6 HRCNFG");
+
+}
+hotmenu ePWM6_TB_Regs()
+{
+    GEL_WatchAdd("*0x6940,x","ePWM6 TBCTL");
+    GEL_WatchAdd("*0x6941,x","ePWM6 TBSTS");
+    GEL_WatchAdd("*0x6942,x","ePWM6 TBPHSHR");
+    GEL_WatchAdd("*0x6943,x","ePWM6 TBPHS");
+    GEL_WatchAdd("*0x6944,x","ePWM6 TBCTR");
+    GEL_WatchAdd("*0x6945,x","ePWM6 TBPRD");
+}
+hotmenu ePWM6_CMP_Regs()
+{
+    GEL_WatchAdd("*0x6947,x","ePWM6 CMPCTL");
+    GEL_WatchAdd("*0x6948,x","ePWM6 CMPAHR");
+    GEL_WatchAdd("*0x6949,x","ePWM6 CMPA");
+    GEL_WatchAdd("*0x694A,x","ePWM6 CMPB");
+}
+hotmenu ePWM6_AQ_Regs()
+{
+    GEL_WatchAdd("*0x694B,x","ePWM6 AQCTLA");
+    GEL_WatchAdd("*0x694C,x","ePWM6 AQCTLB");
+    GEL_WatchAdd("*0x694D,x","ePWM6 AQSFRC");
+    GEL_WatchAdd("*0x694E,x","ePWM6 AQCSFRC");
+}
+hotmenu ePWM6_DB_Regs()
+{
+    GEL_WatchAdd("*0x694F,x","ePWM6 DBCTL");
+    GEL_WatchAdd("*0x6950,x","ePWM6 DBRED");
+    GEL_WatchAdd("*0x6951,x","ePWM6 DBFED");
+}
+hotmenu ePWM6_TZ_Regs()
+{
+    GEL_WatchAdd("*0x6952,x","ePWM6 TZSEL");
+    GEL_WatchAdd("*0x6954,x","ePWM6 TZCTL");
+    GEL_WatchAdd("*0x6955,x","ePWM6 TZEINT");
+    GEL_WatchAdd("*0x6956,x","ePWM6 TZFLG");
+    GEL_WatchAdd("*0x6957,x","ePWM6 TZCLR");
+    GEL_WatchAdd("*0x6958,x","ePWM6 TZFRC");
+}
+hotmenu ePWM6_ET_Regs()
+{
+    GEL_WatchAdd("*0x6959,x","ePWM6 ETSEL");
+    GEL_WatchAdd("*0x695A,x","ePWM6 ETPS");
+    GEL_WatchAdd("*0x695B,x","ePWM6 ETFLG");
+    GEL_WatchAdd("*0x695C,x","ePWM6 ETCLR");
+    GEL_WatchAdd("*0x695D,x","ePWM6 ETFRC");
+}
+
+
+/********************************************************************/
+/* Enhanced EQEP Registers                                          */
+/********************************************************************/
+menuitem "Watch eQEP"
+
+hotmenu eQEP1_All_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6B00,x","eQEP1 QPOSCNT");
+    GEL_WatchAdd("*(long *)0x6B02,x","eQEP1 QPOSINIT");
+    GEL_WatchAdd("*(long *)0x6B04,x","eQEP1 QPOSMAX");
+    GEL_WatchAdd("*(long *)0x6B06,x","eQEP1 QPOSCMP");
+    GEL_WatchAdd("*(long *)0x6B08,x","eQEP1 QPOSILAT");
+    GEL_WatchAdd("*(long *)0x6B0A,x","eQEP1 QPOSSLAT");
+    GEL_WatchAdd("*(long *)0x6B0C,x","eQEP1 QPOSLAT");
+    GEL_WatchAdd("*(long *)0x6B0E,x","eQEP1 QUTMR");
+    GEL_WatchAdd("*(long *)0x6B10,x","eQEP1 QUPRD");
+    GEL_WatchAdd("*0x6B12,x","eQEP1 QWDTMR");
+    GEL_WatchAdd("*0x6B13,x","eQEP1 QWDPRD");
+    GEL_WatchAdd("*0x6B14,x","eQEP1 QDECCTL");
+    GEL_WatchAdd("*0x6B15,x","eQEP1 QEPCTL");
+    GEL_WatchAdd("*0x6B16,x","eQEP1 QCAPCTL");
+    GEL_WatchAdd("*0x6B17,x","eQEP1 QPOSCTL");
+    GEL_WatchAdd("*0x6B18,x","eQEP1 QEINT");
+    GEL_WatchAdd("*0x6B19,x","eQEP1 QFLG");
+    GEL_WatchAdd("*0x6B1A,x","eQEP1 QCLR");
+    GEL_WatchAdd("*0x6B1B,x","eQEP1 QFRC");
+    GEL_WatchAdd("*0x6B1C,x","eQEP1 QEPSTS");
+    GEL_WatchAdd("*0x6B1D,x","eQEP1 QCTMR");
+    GEL_WatchAdd("*0x6B1E,x","eQEP1 QCPRD");
+    GEL_WatchAdd("*0x6B1F,x","eQEP1 QCTMRLAT");
+    GEL_WatchAdd("*0x6B20,x","eQEP1 QCPRDLAT");
+}
+hotmenu eQEP2_All_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6B40,x","eQEP2 QPOSCNT");
+    GEL_WatchAdd("*(long *)0x6B42,x","eQEP2 QPOSINIT");
+    GEL_WatchAdd("*(long *)0x6B44,x","eQEP2 QPOSMAX");
+    GEL_WatchAdd("*(long *)0x6B46,x","eQEP2 QPOSCMP");
+    GEL_WatchAdd("*(long *)0x6B48,x","eQEP2 QPOSILAT");
+    GEL_WatchAdd("*(long *)0x6B4A,x","eQEP2 QPOSSLAT");
+    GEL_WatchAdd("*(long *)0x6B4C,x","eQEP2 QPOSLAT");
+    GEL_WatchAdd("(long *)*0x6B4E,x","eQEP2 QUTMR");
+    GEL_WatchAdd("*(long *)0x6B50,x","eQEP2 QUPRD");
+    GEL_WatchAdd("*0x6B52,x","eQEP2 QWDTMR");
+    GEL_WatchAdd("*0x6B53,x","eQEP2 QWDPRD");
+    GEL_WatchAdd("*0x6B54,x","eQEP2 QDECCTL");
+    GEL_WatchAdd("*0x6B55,x","eQEP2 QEPCTL");
+    GEL_WatchAdd("*0x6B56,x","eQEP2 QCAPCTL");
+    GEL_WatchAdd("*0x6B57,x","eQEP2 QPOSCTL");
+    GEL_WatchAdd("*0x6B58,x","eQEP2 QEINT");
+    GEL_WatchAdd("*0x6B59,x","eQEP2 QFLG");
+    GEL_WatchAdd("*0x6B5A,x","eQEP2 QCLR");
+    GEL_WatchAdd("*0x6B5B,x","eQEP2 QFRC");
+    GEL_WatchAdd("*0x6B5C,x","eQEP2 QEPSTS");
+    GEL_WatchAdd("*0x6B5D,x","eQEP2 QCTMR");
+    GEL_WatchAdd("*0x6B5E,x","eQEP2 QCPRD");
+    GEL_WatchAdd("*0x6B5F,x","eQEP2 QCTMRLAT");
+    GEL_WatchAdd("*0x6B60,x","eQEP2 QCPRDLAT");
+}
+
+
+/********************************************************************/
+/* External Interface Registers                                     */
+/********************************************************************/
+menuitem "Watch External Interface Registers";
+
+hotmenu All_External_Interface_Regs()
+{
+    GEL_WatchAdd("*(long *)0x0B20,x","XTIMING0");
+    GEL_WatchAdd("*(long *)0x0B2C,x","XTIMING6");
+    GEL_WatchAdd("*(long *)0x0B2E,x","XTIMING7");
+    GEL_WatchAdd("*(long *)0x0B34,x","XINTCNF2");
+    GEL_WatchAdd("*0x0B38,x","XBANK");
+    GEL_WatchAdd("*0x0B3A,x","XREVISION");
+    GEL_WatchAdd("*0x0B3D,x","XRESET");
+}
+
+/********************************************************************/
+/* External Interrupt Registers                                     */
+/********************************************************************/
+menuitem "Watch External Interrupt Registers";
+
+hotmenu All_XINT_Regs()
+{
+    GEL_WatchAdd("*0x7070,x","XINT1CR");
+    GEL_WatchAdd("*0x7071,x","XINT2CR");
+    GEL_WatchAdd("*0x7072,x","XINT3CR");
+    GEL_WatchAdd("*0x7073,x","XINT4CR");
+    GEL_WatchAdd("*0x7074,x","XINT5CR");
+    GEL_WatchAdd("*0x7075,x","XINT6CR");
+    GEL_WatchAdd("*0x7076,x","XINT7CR");
+    GEL_WatchAdd("*0x7077,x","XNMICR");
+    GEL_WatchAdd("*0x7078,x","XINT1CTR");
+    GEL_WatchAdd("*0x7079,x","XINT2CTR");
+    GEL_WatchAdd("*0x707F,x","XNMICTR");
+}
+hotmenu XINT_Control_Regs()
+{
+    GEL_WatchAdd("*0x7070,x","XINT1CR");
+    GEL_WatchAdd("*0x7071,x","XINT2CR");
+    GEL_WatchAdd("*0x7072,x","XINT3CR");
+    GEL_WatchAdd("*0x7073,x","XINT4CR");
+    GEL_WatchAdd("*0x7074,x","XINT5CR");
+    GEL_WatchAdd("*0x7075,x","XINT6CR");
+    GEL_WatchAdd("*0x7076,x","XINT7CR");
+    GEL_WatchAdd("*0x7077,x","XNMICR");
+}
+hotmenu XINT_Counter_Regs()
+{
+    GEL_WatchAdd("*0x7078,x","XINT1CTR");
+    GEL_WatchAdd("*0x7079,x","XINT2CTR");
+    GEL_WatchAdd("*0x707F,x","XNMICTR");
+}
+
+
+/********************************************************************/
+/* FPU Registers                                                    */
+/********************************************************************/
+menuitem "Watch FPU Registers"
+
+hotmenu All_FPU_Single_Precision_Regs()
+{
+    GEL_WatchAdd("RB");
+    GEL_WatchAdd("STF");
+    GEL_WatchAdd("R0H");
+    GEL_WatchAdd("R1H");
+    GEL_WatchAdd("R2H");
+    GEL_WatchAdd("R3H");
+    GEL_WatchAdd("R4H");
+    GEL_WatchAdd("R5H");
+    GEL_WatchAdd("R6H");
+    GEL_WatchAdd("R7H");
+}
+
+
+/********************************************************************/
+/* GPIO Registers                                                   */
+/********************************************************************/
+menuitem "Watch GPIO Registers";
+
+hotmenu All_GPIO_CONTROL_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6F80,x","GPACTRL");
+    GEL_WatchAdd("*(long *)0x6F82,x","GPAQSEL1");
+    GEL_WatchAdd("*(long *)0x6F84,x","GPAQSEL2");
+    GEL_WatchAdd("*(long *)0x6F86,x","GPAMUX1");
+    GEL_WatchAdd("*(long *)0x6F88,x","GPAMUX2");
+    GEL_WatchAdd("*(long *)0x6F8A,x","GPADIR");
+    GEL_WatchAdd("*(long *)0x6F8C,x","GPAPUD");
+
+    GEL_WatchAdd("*(long *)0x6F90,x","GPBCTRL");
+    GEL_WatchAdd("*(long *)0x6F92,x","GPBQSEL1");
+    GEL_WatchAdd("*(long *)0x6F94,x","GPBQSEL2");
+    GEL_WatchAdd("*(long *)0x6F96,x","GPBMUX1");
+    GEL_WatchAdd("*(long *)0x6F98,x","GPBMUX2");
+    GEL_WatchAdd("*(long *)0x6F9A,x","GPBDIR");
+    GEL_WatchAdd("*(long *)0x6F9C,x","GPBPUD");
+
+    GEL_WatchAdd("*(long *)0x6FA6,x","GPCMUX1");
+    GEL_WatchAdd("*(long *)0x6FA8,x","GPCMUX2");
+    GEL_WatchAdd("*(long *)0x6FAA,x","GPCDIR");
+    GEL_WatchAdd("*(long *)0x6FAC,x","GPCPUD");
+}
+hotmenu All_GPIO_DATA_Regs()
+{
+    GEL_WatchAdd("*(long *)0x6FC0,x","GPADAT");
+    GEL_WatchAdd("*(long *)0x6FC2,x","GPASET");
+    GEL_WatchAdd("*(long *)0x6FC4,x","GPACLEAR");
+    GEL_WatchAdd("*(long *)0x6FC6,x","GPATOGGLE");
+    
+    GEL_WatchAdd("*(long *)0x6FC8,x","GPBDAT");
+    GEL_WatchAdd("*(long *)0x6FCA,x","GPBSET");
+    GEL_WatchAdd("*(long *)0x6FCC,x","GPBCLEAR");
+    GEL_WatchAdd("*(long *)0x6FCE,x","GPBTOGGLE");
+
+    GEL_WatchAdd("*(long *)0x6FD0,x","GPCDAT");
+    GEL_WatchAdd("*(long *)0x6FD2,x","GPCSET");
+    GEL_WatchAdd("*(long *)0x6FD4,x","GPCCLEAR");
+    GEL_WatchAdd("*(long *)0x6FD6,x","GPCTOGGLE");
+}
+hotmenu All_GPIO_INTERRUPT_Regs()
+{
+    GEL_WatchAdd("*0x6FE0,x","GPIOXINT1SEL");
+    GEL_WatchAdd("*0x6FE1,x","GPIOXINT2SEL");
+    GEL_WatchAdd("*0x6FE2,x","GPIOXNMISEL");
+    GEL_WatchAdd("*0x6FE3,x","GPIOXINT3SEL");
+    GEL_WatchAdd("*0x6FE4,x","GPIOXINT4SEL");
+    GEL_WatchAdd("*0x6FE5,x","GPIOXINT5SEL");
+    GEL_WatchAdd("*0x6FE6,x","GPIOXINT6SEL");
+    GEL_WatchAdd("*0x6FE7,x","GPIOXINT7SEL");
+    GEL_WatchAdd("*(long *)0x6FE8,x","GPIOLPMSEL");
+}
+hotmenu All_GPA_Registers()
+{
+    GEL_WatchAdd("*(long *)0x6F80,x","GPACTRL");
+    GEL_WatchAdd("*(long *)0x6F82,x","GPAQSEL1");
+    GEL_WatchAdd("*(long *)0x6F84,x","GPAQSEL2");
+    GEL_WatchAdd("*(long *)0x6F86,x","GPAMUX1");
+    GEL_WatchAdd("*(long *)0x6F88,x","GPAMUX2");
+    GEL_WatchAdd("*(long *)0x6F8A,x","GPADIR");
+    GEL_WatchAdd("*(long *)0x6F8C,x","GPAPUD");
+    
+    GEL_WatchAdd("*(long *)0x6FC0,x","GPADAT");
+    GEL_WatchAdd("*(long *)0x6FC2,x","GPASET");
+    GEL_WatchAdd("*(long *)0x6FC4,x","GPACLEAR");
+    GEL_WatchAdd("*(long *)0x6FC6,x","GPATOGGLE");
+}
+hotmenu All_GPB_Registers()
+{
+    GEL_WatchAdd("*(long *)0x6F90,x","GPBCTRL");
+    GEL_WatchAdd("*(long *)0x6F92,x","GPBQSEL1");
+    GEL_WatchAdd("*(long *)0x6F94,x","GPBQSEL2");
+    GEL_WatchAdd("*(long *)0x6F96,x","GPBMUX1");
+    GEL_WatchAdd("*(long *)0x6F98,x","GPBMUX2");
+    GEL_WatchAdd("*(long *)0x6F9A,x","GPBDIR");
+    GEL_WatchAdd("*(long *)0x6F9C,x","GPBPUD");
+
+    GEL_WatchAdd("*(long *)0x6FC8,x","GPBDAT");
+    GEL_WatchAdd("*(long *)0x6FCA,x","GPBSET");
+    GEL_WatchAdd("*(long *)0x6FCC,x","GPBCLEAR");
+    GEL_WatchAdd("*(long *)0x6FCE,x","GPBTOGGLE");
+}
+hotmenu All_GPC_Registers()
+{
+    GEL_WatchAdd("*(long *)0x6FA6,x","GPCMUX1");
+    GEL_WatchAdd("*(long *)0x6FA8,x","GPCMUX2");
+    GEL_WatchAdd("*(long *)0x6FAA,x","GPCDIR");
+    GEL_WatchAdd("*(long *)0x6FAC,x","GPCPUD");
+
+    GEL_WatchAdd("*(long *)0x6FC8,x","GPBDAT");
+    GEL_WatchAdd("*(long *)0x6FCA,x","GPBSET");
+    GEL_WatchAdd("*(long *)0x6FCC,x","GPBCLEAR");
+    GEL_WatchAdd("*(long *)0x6FCE,x","GPBTOGGLE");
+
+    GEL_WatchAdd("*(long *)0x6FD0,x","GPCDAT");
+    GEL_WatchAdd("*(long *)0x6FD2,x","GPCSET");
+    GEL_WatchAdd("*(long *)0x6FD4,x","GPCCLEAR");
+    GEL_WatchAdd("*(long *)0x6FD6,x","GPCTOGGLE");
+}
+
+
+/********************************************************************/
+/* Multichannel Serial Port Registers                               */
+/********************************************************************/
+menuitem "Watch McBSP Registers";
+
+hotmenu All_McBSP_A_Regs()
+{
+    GEL_WatchAdd("*0x5000,x","McBSPA DRR2");
+    GEL_WatchAdd("*0x5001,x","McBSPA DRR1");
+    GEL_WatchAdd("*0x5002,x","McBSPA DXR2");
+    GEL_WatchAdd("*0x5003,x","McBSPA DXR1");
+    GEL_WatchAdd("*0x5004,x","McBSPA SPCR2");
+    GEL_WatchAdd("*0x5005,x","McBSPA SPCR1");
+    GEL_WatchAdd("*0x5006,x","McBSPA RCR2");
+    GEL_WatchAdd("*0x5007,x","McBSPA RCR1");
+    GEL_WatchAdd("*0x5008,x","McBSPA XCR2");
+    GEL_WatchAdd("*0x5009,x","McBSPA XCR1");
+    GEL_WatchAdd("*0x500A,x","McBSPA SRGR2");
+    GEL_WatchAdd("*0x500B,x","McBSPA SRGR1");
+    GEL_WatchAdd("*0x500C,x","McBSPA MCR2");
+    GEL_WatchAdd("*0x500D,x","McBSPA MCR1");
+    GEL_WatchAdd("*0x500E,x","McBSPA RCERA");
+    GEL_WatchAdd("*0x500F,x","McBSPA RCERB");
+    GEL_WatchAdd("*0x5010,x","McBSPA XCERA");
+    GEL_WatchAdd("*0x5011,x","McBSPA XCERB");
+    GEL_WatchAdd("*0x5012,x","McBSPA PCR1");
+    GEL_WatchAdd("*0x5013,x","McBSPA RCERC");
+    GEL_WatchAdd("*0x5014,x","McBSPA RCERD");
+    GEL_WatchAdd("*0x5015,x","McBSPA XCERC");
+    GEL_WatchAdd("*0x5016,x","McBSPA XCERD");
+    GEL_WatchAdd("*0x5017,x","McBSPA RCERE");
+    GEL_WatchAdd("*0x5018,x","McBSPA RCERF");
+    GEL_WatchAdd("*0x5019,x","McBSPA XCERE");
+    GEL_WatchAdd("*0x501A,x","McBSPA XCERF");
+    GEL_WatchAdd("*0x501B,x","McBSPA RCERG");
+    GEL_WatchAdd("*0x501C,x","McBSPA RCERH");
+    GEL_WatchAdd("*0x501D,x","McBSPA XCERG");
+    GEL_WatchAdd("*0x501E,x","McBSPA XCERH");
+    GEL_WatchAdd("*0x5023,x","McBSPA MFFINT");
+    GEL_WatchAdd("*0x503F,x","McBSPA Revision");
+}
+
+hotmenu All_McBSP_B_Regs()
+{
+    GEL_WatchAdd("*0x5040,x","McBSPB DRR2");
+    GEL_WatchAdd("*0x5041,x","McBSPB DRR1");
+    GEL_WatchAdd("*0x5042,x","McBSPB DXR2");
+    GEL_WatchAdd("*0x5043,x","McBSPB DXR1");
+    GEL_WatchAdd("*0x5044,x","McBSPB SPCR2");
+    GEL_WatchAdd("*0x5045,x","McBSPB SPCR1");
+    GEL_WatchAdd("*0x5046,x","McBSPB RCR2");
+    GEL_WatchAdd("*0x5047,x","McBSPB RCR1");
+    GEL_WatchAdd("*0x5048,x","McBSPB XCR2");
+    GEL_WatchAdd("*0x5049,x","McBSPB XCR1");
+    GEL_WatchAdd("*0x504A,x","McBSPB SRGR2");
+    GEL_WatchAdd("*0x504B,x","McBSPB SRGR1");
+    GEL_WatchAdd("*0x504C,x","McBSPB MCR2");
+    GEL_WatchAdd("*0x504D,x","McBSPB MCR1");
+    GEL_WatchAdd("*0x504E,x","McBSPB RCERA");
+    GEL_WatchAdd("*0x504F,x","McBSPB RCERB");
+    GEL_WatchAdd("*0x5050,x","McBSPB XCERA");
+    GEL_WatchAdd("*0x5051,x","McBSPB XCERB");
+    GEL_WatchAdd("*0x5052,x","McBSPB PCR1");
+    GEL_WatchAdd("*0x5053,x","McBSPB RCERC");
+    GEL_WatchAdd("*0x5054,x","McBSPB RCERD");
+    GEL_WatchAdd("*0x5055,x","McBSPB XCERC");
+    GEL_WatchAdd("*0x5056,x","McBSPB XCERD");
+    GEL_WatchAdd("*0x5057,x","McBSPB RCERE");
+    GEL_WatchAdd("*0x5058,x","McBSPB RCERF");
+    GEL_WatchAdd("*0x5059,x","McBSPB XCERE");
+    GEL_WatchAdd("*0x505A,x","McBSPB XCERF");
+    GEL_WatchAdd("*0x505B,x","McBSPB RCERG");
+    GEL_WatchAdd("*0x505C,x","McBSPB RCERH");
+    GEL_WatchAdd("*0x505D,x","McBSPB XCERG");
+    GEL_WatchAdd("*0x505E,x","McBSPB XCERH");
+    GEL_WatchAdd("*0x5063,x","McBSPB MFFINT");
+    GEL_WatchAdd("*0x506F,x","McBSPB Revision");
+}
+
+
+
+/********************************************************************/
+/* I2C Registers                                                    */
+/********************************************************************/
+menuitem "Watch I2C Registers";
+
+hotmenu All_I2C_Regs()
+{
+    GEL_WatchAdd("*0x7900,x","I2COAR");
+    GEL_WatchAdd("*0x7901,x","I2CIER");
+    GEL_WatchAdd("*0x7902,x","I2CSTR");
+    GEL_WatchAdd("*0x7903,x","I2CCLKL");
+    GEL_WatchAdd("*0x7904,x","I2CCLKH");
+    GEL_WatchAdd("*0x7905,x","I2CCNT");
+    GEL_WatchAdd("*0x7906,x","I2CDRR");
+    GEL_WatchAdd("*0x7907,x","I2CSAR");
+    GEL_WatchAdd("*0x7908,x","I2CDXR");
+    GEL_WatchAdd("*0x7909,x","I2CMDR");
+    GEL_WatchAdd("*0x790A,x","I2CISRC");
+    GEL_WatchAdd("*0x790C,x","I2CPSC");
+    GEL_WatchAdd("*0x7920,x","I2CFFTX");
+    GEL_WatchAdd("*0x7921,x","I2CFFRX");
+}
+
+
+/********************************************************************/
+/* Peripheral Interrupt Expansion Registers                         */
+/********************************************************************/
+menuitem "Watch Peripheral Interrupt Expansion Registers";
+
+hotmenu All_PIE_Regs()
+{
+    GEL_WatchAdd("*0x0CE0,x","PIECTRL");
+    GEL_WatchAdd("*0x0CE1,x","PIEACK");
+    GEL_WatchAdd("*0x0CE2,x","PIEIER1");
+    GEL_WatchAdd("*0x0CE3,x","PIEIFR1");
+    GEL_WatchAdd("*0x0CE4,x","PIEIER2");
+    GEL_WatchAdd("*0x0CE5,x","PIEIFR2");
+    GEL_WatchAdd("*0x0CE6,x","PIEIER3");
+    GEL_WatchAdd("*0x0CE7,x","PIEIFR3");
+    GEL_WatchAdd("*0x0CE8,x","PIEIER4");
+    GEL_WatchAdd("*0x0CE9,x","PIEIFR4");
+    GEL_WatchAdd("*0x0CEA,x","PIEIER5");
+    GEL_WatchAdd("*0x0CEB,x","PIEIFR5");
+    GEL_WatchAdd("*0x0CEC,x","PIEIER6");
+    GEL_WatchAdd("*0x0CED,x","PIEIFR6");
+    GEL_WatchAdd("*0x0CEE,x","PIEIER7");
+    GEL_WatchAdd("*0x0CEF,x","PIEIFR7");
+    GEL_WatchAdd("*0x0CF0,x","PIEIER8");
+    GEL_WatchAdd("*0x0CF1,x","PIEIFR8");
+    GEL_WatchAdd("*0x0CF2,x","PIEIER9");
+    GEL_WatchAdd("*0x0CF3,x","PIEIFR9");
+    GEL_WatchAdd("*0x0CF4,x","PIEIER10");
+    GEL_WatchAdd("*0x0CF5,x","PIEIFR10");
+    GEL_WatchAdd("*0x0CF6,x","PIEIER11");
+    GEL_WatchAdd("*0x0CF7,x","PIEIFR11");
+    GEL_WatchAdd("*0x0CF8,x","PIEIER12");
+    GEL_WatchAdd("*0x0CF9,x","PIEIFR12");
+}
+hotmenu PIECTRL()
+{
+    GEL_WatchAdd("*0x0CE0,x","PIECTRL");
+}
+hotmenu PIEACK()
+{
+    GEL_WatchAdd("*0x0CE1,x","PIEACK");
+}
+hotmenu PIEIER1_and_PIEIFR1()
+{
+    GEL_WatchAdd("*0x0CE2,x","PIEIER1");
+    GEL_WatchAdd("*0x0CE3,x","PIEIFR1");
+}
+hotmenu PIEIER2_and_PIEIFR2()
+{
+    GEL_WatchAdd("*0x0CE4,x","PIEIER2");
+    GEL_WatchAdd("*0x0CE5,x","PIEIFR2");
+}
+hotmenu PIEIER3_and_PIEIFR3()
+{
+    GEL_WatchAdd("*0x0CE6,x","PIEIER3");
+    GEL_WatchAdd("*0x0CE7,x","PIEIFR3");
+}
+hotmenu PIEIER4_and_PIEIFR4()
+{
+    GEL_WatchAdd("*0x0CE8,x","PIEIER4");
+    GEL_WatchAdd("*0x0CE9,x","PIEIFR4");
+}
+hotmenu PIEIER5_and_PIEIFR5()
+{
+    GEL_WatchAdd("*0x0CEA,x","PIEIER5");
+    GEL_WatchAdd("*0x0CEB,x","PIEIFR5");
+}
+hotmenu PIEIER6_and_PIEIFR6()
+{
+    GEL_WatchAdd("*0x0CEC,x","PIEIER6");
+    GEL_WatchAdd("*0x0CED,x","PIEIFR6");
+}
+hotmenu PIEIER7_and_PIEIFR7()
+{
+    GEL_WatchAdd("*0x0CEE,x","PIEIER7");
+    GEL_WatchAdd("*0x0CEF,x","PIEIFR7");
+}
+hotmenu PIEIER8_and_PIEIFR8()
+{
+    GEL_WatchAdd("*0x0CF0,x","PIEIER8");
+    GEL_WatchAdd("*0x0CF1,x","PIEIFR8");
+}
+hotmenu PIEIER9_and_PIEIFR9()
+{
+    GEL_WatchAdd("*0x0CF2,x","PIEIER9");
+    GEL_WatchAdd("*0x0CF3,x","PIEIFR9");
+}
+hotmenu PIEIFR10_and_PIEIFR10()
+{
+    GEL_WatchAdd("*0x0CF4,x","PIEIER10");
+    GEL_WatchAdd("*0x0CF5,x","PIEIFR10");
+}
+hotmenu PIEIER11_and_PIEIFR11()
+{
+    GEL_WatchAdd("*0x0CF6,x","PIEIER11");
+    GEL_WatchAdd("*0x0CF7,x","PIEIFR11");
+}
+hotmenu PIEIER12_and_PIEIFR12()
+{
+    GEL_WatchAdd("*0x0CF8,x","PIEIER12");
+    GEL_WatchAdd("*0x0CF9,x","PIEIFR12");
+}
+
+
+/********************************************************************/
+/* Serial Communication Interface Registers                         */
+/********************************************************************/
+menuitem "Watch SCI Registers";
+
+hotmenu SCI_A_All_Regs()
+{
+    GEL_WatchAdd("*0x7050,x","SCICCRA");
+    GEL_WatchAdd("*0x7051,x","SCICTL1A");
+    GEL_WatchAdd("*0x7052,x","SCIHBAUDA");
+    GEL_WatchAdd("*0x7053,x","SCILBAUDA");
+    GEL_WatchAdd("*0x7054,x","SCICTL2A");
+    GEL_WatchAdd("*0x7055,x","SCIRXSTA");
+    GEL_WatchAdd("*0x7056,x","SCIRXEMUA");
+    GEL_WatchAdd("*0x7057,x","SCIRXBUFA");
+    GEL_WatchAdd("*0x7059,x","SCITXBUFA");
+    GEL_WatchAdd("*0x705A,x","SCIFFTXA");
+    GEL_WatchAdd("*0x705B,x","SCIFFRXA");
+    GEL_WatchAdd("*0x705C,x","SCIFFCTA");
+    GEL_WatchAdd("*0x705F,x","SCIPRIA");
+}
+hotmenu SCI_A_FIFO_Registers()
+{
+    GEL_WatchAdd("*0x705A,x","SCIFFTXA");
+    GEL_WatchAdd("*0x705B,x","SCIFFRXA");
+    GEL_WatchAdd("*0x705C,x","SCIFFCTA");
+}
+hotmenu SCI_B_All_Regs()
+{
+    GEL_WatchAdd("*0x7750,x","SCICCRB");
+    GEL_WatchAdd("*0x7751,x","SCICTL1B");
+    GEL_WatchAdd("*0x7752,x","SCIHBAUDB");
+    GEL_WatchAdd("*0x7753,x","SCILBAUDB");
+    GEL_WatchAdd("*0x7754,x","SCICTL2B");
+    GEL_WatchAdd("*0x7755,x","SCIRXSTB");
+    GEL_WatchAdd("*0x7756,x","SCIRXEMUB");
+    GEL_WatchAdd("*0x7757,x","SCIRXBUFB");
+    GEL_WatchAdd("*0x7759,x","SCITXBUFB");
+    GEL_WatchAdd("*0x775A,x","SCIFFTXB");
+    GEL_WatchAdd("*0x775B,x","SCIFFRXB");
+    GEL_WatchAdd("*0x775C,x","SCIFFCTB");
+    GEL_WatchAdd("*0x775F,x","SCIPRIB");
+}
+
+hotmenu SCI_B_FIFO_Registers()
+{
+    GEL_WatchAdd("*0x775A,x","SCIFFTXB");
+    GEL_WatchAdd("*0x775B,x","SCIFFRXB");
+    GEL_WatchAdd("*0x775C,x","SCIFFCTB");
+}
+hotmenu SCI_C_All_Regs()
+{
+    GEL_WatchAdd("*0x7770,x","SCICCRC");
+    GEL_WatchAdd("*0x7771,x","SCICTL1C");
+    GEL_WatchAdd("*0x7772,x","SCIHBAUDC");
+    GEL_WatchAdd("*0x7773,x","SCILBAUDC");
+    GEL_WatchAdd("*0x7774,x","SCICTL2C");
+    GEL_WatchAdd("*0x7775,x","SCIRXSTC");
+    GEL_WatchAdd("*0x7776,x","SCIRXEMUC");
+    GEL_WatchAdd("*0x7777,x","SCIRXBUFC");
+    GEL_WatchAdd("*0x7779,x","SCITXBUFC");
+    GEL_WatchAdd("*0x777A,x","SCIFFTXC");
+    GEL_WatchAdd("*0x777B,x","SCIFFRXC");
+    GEL_WatchAdd("*0x777C,x","SCIFFCTC");
+    GEL_WatchAdd("*0x777F,x","SCIPRIC");
+}
+hotmenu SCI_C_FIFO_Registers()
+{
+    GEL_WatchAdd("*0x777A,x","SCIFFTXC");
+    GEL_WatchAdd("*0x777B,x","SCIFFRXC");
+    GEL_WatchAdd("*0x777C,x","SCIFFCTC");
+}
+
+
+/********************************************************************/
+/* Serial Peripheral Interface Registers                            */
+/********************************************************************/
+menuitem "Watch SPI Registers";
+
+hotmenu SPI_A_All_Regs()
+{
+    GEL_WatchAdd("*0x7040,x","SPIA SPICCR");
+    GEL_WatchAdd("*0x7041,x","SPIA SPICTL");
+    GEL_WatchAdd("*0x7042,x","SPIA SPIST");
+    GEL_WatchAdd("*0x7044,x","SPIA SPIBRR");
+    GEL_WatchAdd("*0x7046,x","SPIA SPIEMU");
+    GEL_WatchAdd("*0x7047,x","SPIA SPIRXBUF");
+    GEL_WatchAdd("*0x7048,x","SPIA SPITXBUF");
+    GEL_WatchAdd("*0x7049,x","SPIA SPIDAT");
+    GEL_WatchAdd("*0x704A,x","SPIA SPIFFTX");
+    GEL_WatchAdd("*0x704B,x","SPIA SPIFFRX");
+    GEL_WatchAdd("*0x704C,x","SPIA SPIFFCT");
+    GEL_WatchAdd("*0x704F,x","SPIA SPIPRI");
+}
+hotmenu SPI_A_FIFO_Registers()
+{
+    GEL_WatchAdd("*0x704A,x","SPIA SPIFFTX");
+    GEL_WatchAdd("*0x704B,x","SPIA SPIFFRX");
+    GEL_WatchAdd("*0x704C,x","SPIA SPIFFCT");
+}
+
+
+/********************************************************************/
+/* Watchdog Timer Registers                                         */
+/********************************************************************/
+menuitem "Watch Watchdog Timer Registers";
+
+hotmenu All_Watchdog_Regs()
+{
+    GEL_WatchAdd("*0x7023,x","WDCNTR");
+    GEL_WatchAdd("*0x7025,x","WDKEY");
+    GEL_WatchAdd("*0x7029,x","WDCR");
+    GEL_WatchAdd("*0x7022,x","SCSR");
+}
+
+/********************************************************************/
+/*** End of file ***/

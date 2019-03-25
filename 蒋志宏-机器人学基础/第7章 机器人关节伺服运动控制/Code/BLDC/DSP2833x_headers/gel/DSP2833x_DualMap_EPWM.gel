@@ -1,0 +1,237 @@
+/*
+/* TI File $Revision: /main/1 $                                               */
+/* Checkin $Date: May 7, 2008   13:07:07 $                                                   */
+/***********************************************************************/
+/* File: DSP2833x_DualMap_EPWM.gel   
+/*                                 
+/* Description: 
+/*   Adds dual-mapped EPWM registers to the GEL menu in     
+/*   Code Composer Studio and allows user to enable dual-mapping of   
+/*   EPWM registers to Peripheral Frame 3 (DMA-accessible) register    
+/*   space
+//#####################################################################
+// $TI Release: DSP2833x/DSP2823x Header Files V1.20 $
+// $Release Date: August 1, 2008 $
+//#####################################################################
+*/
+
+/********************************************************************/
+/* Dual-Mapped Enhanced PWM Registers                               */
+/********************************************************************/
+
+/* Add a space line to the GEL menu */
+menuitem "___________________________________";
+hotmenu ___() {}
+
+menuitem "Dual-Mapped ePWM Registers";
+hotmenu Enable_ePWM_Dual_Mapping ()
+{
+    *0x702E = (*0x702E) | 0x0001;    /*    MAPCNF[MAPEPWM] = 1 */
+}
+hotmenu ePWM1_DualMapped_All_Regs()
+{
+    GEL_WatchAdd("*0x5800,x","ePWM1 TBCTL");
+    GEL_WatchAdd("*0x5801,x","ePWM1 TBSTS");
+    GEL_WatchAdd("*0x5802,x","ePWM1 TBPHSHR");
+    GEL_WatchAdd("*0x5803,x","ePWM1 TBPHS");
+    GEL_WatchAdd("*0x5804,x","ePWM1 TBCTR");
+    GEL_WatchAdd("*0x5805,x","ePWM1 TBPRD");
+    GEL_WatchAdd("*0x5807,x","ePWM1 CMPCTL");
+    GEL_WatchAdd("*0x5808,x","ePWM1 CMPAHR");
+    GEL_WatchAdd("*0x5809,x","ePWM1 CMPA");
+    GEL_WatchAdd("*0x580A,x","ePWM1 CMPB");
+    GEL_WatchAdd("*0x580B,x","ePWM1 AQCTLA");
+    GEL_WatchAdd("*0x580C,x","ePWM1 AQCTLB");
+    GEL_WatchAdd("*0x580D,x","ePWM1 AQSFRC");
+    GEL_WatchAdd("*0x580E,x","ePWM1 AQCSFRC");
+    GEL_WatchAdd("*0x580F,x","ePWM1 DBCTL");
+    GEL_WatchAdd("*0x5810,x","ePWM1 DBRED");
+    GEL_WatchAdd("*0x5811,x","ePWM1 DBFED");
+    GEL_WatchAdd("*0x5812,x","ePWM1 TZSEL");
+    GEL_WatchAdd("*0x5813,x","ePWM1 TZDCSEL");
+    GEL_WatchAdd("*0x5814,x","ePWM1 TZCTL");
+    GEL_WatchAdd("*0x5815,x","ePWM1 TZEINT");
+    GEL_WatchAdd("*0x5816,x","ePWM1 TZFLG");
+    GEL_WatchAdd("*0x5817,x","ePWM1 TZCLR");
+    GEL_WatchAdd("*0x5818,x","ePWM1 TZFRC");
+    GEL_WatchAdd("*0x5819,x","ePWM1 ETSEL");
+    GEL_WatchAdd("*0x581A,x","ePWM1 ETPS");
+    GEL_WatchAdd("*0x581B,x","ePWM1 ETFLG");
+    GEL_WatchAdd("*0x581C,x","ePWM1 ETCLR");
+    GEL_WatchAdd("*0x581D,x","ePWM1 ETFRC");
+    GEL_WatchAdd("*0x581E,x","ePWM1 PCCTL");
+    GEL_WatchAdd("*0x5820,x","ePWM1 HRCNFG");
+}
+
+hotmenu ePWM2_DualMapped_All_Regs()
+{
+    GEL_WatchAdd("*0x5840,x","ePWM2 TBCTL");
+    GEL_WatchAdd("*0x5841,x","ePWM2 TBSTS");
+    GEL_WatchAdd("*0x5842,x","ePWM2 TBPHSHR");
+    GEL_WatchAdd("*0x5843,x","ePWM2 TBPHS");
+    GEL_WatchAdd("*0x5844,x","ePWM2 TBCTR");
+    GEL_WatchAdd("*0x5845,x","ePWM2 TBPRD");
+    GEL_WatchAdd("*0x5847,x","ePWM2 CMPCTL");
+    GEL_WatchAdd("*0x5848,x","ePWM2 CMPAHR");
+    GEL_WatchAdd("*0x5849,x","ePWM2 CMPA");
+    GEL_WatchAdd("*0x584A,x","ePWM2 CMPB");
+    GEL_WatchAdd("*0x584B,x","ePWM2 AQCTLA");
+    GEL_WatchAdd("*0x584C,x","ePWM2 AQCTLB");
+    GEL_WatchAdd("*0x584D,x","ePWM2 AQSFRC");
+    GEL_WatchAdd("*0x584E,x","ePWM2 AQCSFRC");
+    GEL_WatchAdd("*0x584F,x","ePWM2 DBCTL");
+    GEL_WatchAdd("*0x5850,x","ePWM2 DBRED");
+    GEL_WatchAdd("*0x5851,x","ePWM2 DBFED");
+    GEL_WatchAdd("*0x5852,x","ePWM2 TZSEL");
+    GEL_WatchAdd("*0x5853,x","ePWM2 TZDCSEL");
+    GEL_WatchAdd("*0x5854,x","ePWM2 TZCTL");
+    GEL_WatchAdd("*0x5855,x","ePWM2 TZEINT");
+    GEL_WatchAdd("*0x5856,x","ePWM2 TZFLG");
+    GEL_WatchAdd("*0x5857,x","ePWM2 TZCLR");
+    GEL_WatchAdd("*0x5858,x","ePWM2 TZFRC");
+    GEL_WatchAdd("*0x5859,x","ePWM2 ETSEL");
+    GEL_WatchAdd("*0x585A,x","ePWM2 ETPS");
+    GEL_WatchAdd("*0x585B,x","ePWM2 ETFLG");
+    GEL_WatchAdd("*0x585C,x","ePWM2 ETCLR");
+    GEL_WatchAdd("*0x585D,x","ePWM2 ETFRC");
+    GEL_WatchAdd("*0x585E,x","ePWM2 PCCTL");
+    GEL_WatchAdd("*0x5860,x","ePWM2 HRCNFG");
+}
+hotmenu ePWM3_DualMapped_All_Regs()
+{
+    GEL_WatchAdd("*0x5880,x","ePWM3 TBCTL");
+    GEL_WatchAdd("*0x5881,x","ePWM3 TBSTS");
+    GEL_WatchAdd("*0x5882,x","ePWM3 TBPHSHR");
+    GEL_WatchAdd("*0x5883,x","ePWM3 TBPHS");
+    GEL_WatchAdd("*0x5884,x","ePWM3 TBCTR");
+    GEL_WatchAdd("*0x5885,x","ePWM3 TBPRD");
+    GEL_WatchAdd("*0x5887,x","ePWM3 CMPCTL");
+    GEL_WatchAdd("*0x5888,x","ePWM3 CMPAHR");
+    GEL_WatchAdd("*0x5889,x","ePWM3 CMPA");
+    GEL_WatchAdd("*0x588A,x","ePWM3 CMPB");
+    GEL_WatchAdd("*0x588B,x","ePWM3 AQCTLA");
+    GEL_WatchAdd("*0x588C,x","ePWM3 AQCTLB");
+    GEL_WatchAdd("*0x588D,x","ePWM3 AQSFRC");
+    GEL_WatchAdd("*0x588E,x","ePWM3 AQCSFRC");
+    GEL_WatchAdd("*0x588F,x","ePWM3 DBCTL");
+    GEL_WatchAdd("*0x5890,x","ePWM3 DBRED");
+    GEL_WatchAdd("*0x5891,x","ePWM3 DBFED");
+    GEL_WatchAdd("*0x5892,x","ePWM3 TZSEL");
+    GEL_WatchAdd("*0x5893,x","ePWM3 TZDCSEL");
+    GEL_WatchAdd("*0x5894,x","ePWM3 TZCTL");
+    GEL_WatchAdd("*0x5895,x","ePWM3 TZEINT");
+    GEL_WatchAdd("*0x5896,x","ePWM3 TZFLG");
+    GEL_WatchAdd("*0x5897,x","ePWM3 TZCLR");
+    GEL_WatchAdd("*0x5898,x","ePWM3 TZFRC");
+    GEL_WatchAdd("*0x5899,x","ePWM3 ETSEL");
+    GEL_WatchAdd("*0x589A,x","ePWM3 ETPS");
+    GEL_WatchAdd("*0x589B,x","ePWM3 ETFLG");
+    GEL_WatchAdd("*0x589C,x","ePWM3 ETCLR");
+    GEL_WatchAdd("*0x589D,x","ePWM3 ETFRC");
+    GEL_WatchAdd("*0x589E,x","ePWM3 PCCTL");
+    GEL_WatchAdd("*0x58A0,x","ePWM3 HRCNFG");
+}
+hotmenu ePWM4_DualMapped_All_Regs()
+{
+    GEL_WatchAdd("*0x58C0,x","ePWM4 TBCTL");
+    GEL_WatchAdd("*0x58C1,x","ePWM4 TBSTS");
+    GEL_WatchAdd("*0x58C2,x","ePWM4 TBPHSHR");
+    GEL_WatchAdd("*0x58C3,x","ePWM4 TBPHS");
+    GEL_WatchAdd("*0x58C4,x","ePWM4 TBCTR");
+    GEL_WatchAdd("*0x58C5,x","ePWM4 TBPRD");
+    GEL_WatchAdd("*0x58C7,x","ePWM4 CMPCTL");
+    GEL_WatchAdd("*0x58C8,x","ePWM4 CMPAHR");
+    GEL_WatchAdd("*0x58C9,x","ePWM4 CMPA");
+    GEL_WatchAdd("*0x58CA,x","ePWM4 CMPB");
+    GEL_WatchAdd("*0x58CB,x","ePWM4 AQCTLA");
+    GEL_WatchAdd("*0x58CC,x","ePWM4 AQCTLB");
+    GEL_WatchAdd("*0x58CD,x","ePWM4 AQSFRC");
+    GEL_WatchAdd("*0x58CE,x","ePWM4 AQCSFRC");
+    GEL_WatchAdd("*0x58CF,x","ePWM4 DBCTL");
+    GEL_WatchAdd("*0x58D0,x","ePWM4 DBRED");
+    GEL_WatchAdd("*0x58D1,x","ePWM4 DBFED");
+    GEL_WatchAdd("*0x58D2,x","ePWM4 TZSEL");
+    GEL_WatchAdd("*0x58D3,x","ePWM4 TZDCSEL");
+    GEL_WatchAdd("*0x58D4,x","ePWM4 TZCTL");
+    GEL_WatchAdd("*0x58D5,x","ePWM4 TZEINT");
+    GEL_WatchAdd("*0x58D6,x","ePWM4 TZFLG");
+    GEL_WatchAdd("*0x58D7,x","ePWM4 TZCLR");
+    GEL_WatchAdd("*0x58D8,x","ePWM4 TZFRC");
+    GEL_WatchAdd("*0x58D9,x","ePWM4 ETSEL");
+    GEL_WatchAdd("*0x58DA,x","ePWM4 ETPS");
+    GEL_WatchAdd("*0x58DB,x","ePWM4 ETFLG");
+    GEL_WatchAdd("*0x58DC,x","ePWM4 ETCLR");
+    GEL_WatchAdd("*0x58DD,x","ePWM4 ETFRC");
+    GEL_WatchAdd("*0x58DE,x","ePWM4 PCCTL");
+    GEL_WatchAdd("*0x58E0,x","ePWM4 HRCNFG");
+}
+hotmenu ePWM5_DualMapped_All_Regs()
+{
+    GEL_WatchAdd("*0x5900,x","ePWM5 TBCTL");
+    GEL_WatchAdd("*0x5901,x","ePWM5 TBSTS");
+    GEL_WatchAdd("*0x5902,x","ePWM5 TBPHSHR");
+    GEL_WatchAdd("*0x5903,x","ePWM5 TBPHS");
+    GEL_WatchAdd("*0x5904,x","ePWM5 TBCTR");
+    GEL_WatchAdd("*0x5905,x","ePWM5 TBPRD");
+    GEL_WatchAdd("*0x5907,x","ePWM5 CMPCTL");
+    GEL_WatchAdd("*0x5908,x","ePWM5 CMPAHR");
+    GEL_WatchAdd("*0x5909,x","ePWM5 CMPA");
+    GEL_WatchAdd("*0x590A,x","ePWM5 CMPB");
+    GEL_WatchAdd("*0x590B,x","ePWM5 AQCTLA");
+    GEL_WatchAdd("*0x590C,x","ePWM5 AQCTLB");
+    GEL_WatchAdd("*0x590D,x","ePWM5 AQSFRC");
+    GEL_WatchAdd("*0x590E,x","ePWM5 AQCSFRC");
+    GEL_WatchAdd("*0x590F,x","ePWM5 DBCTL");
+    GEL_WatchAdd("*0x5910,x","ePWM5 DBRED");
+    GEL_WatchAdd("*0x5911,x","ePWM5 DBFED");
+    GEL_WatchAdd("*0x5912,x","ePWM5 TZSEL");
+    GEL_WatchAdd("*0x5913,x","ePWM5 TZDCSEL");
+    GEL_WatchAdd("*0x5914,x","ePWM5 TZCTL");
+    GEL_WatchAdd("*0x5915,x","ePWM5 TZEINT");
+    GEL_WatchAdd("*0x5916,x","ePWM5 TZFLG");
+    GEL_WatchAdd("*0x5917,x","ePWM5 TZCLR");
+    GEL_WatchAdd("*0x5918,x","ePWM5 TZFRC");
+    GEL_WatchAdd("*0x5919,x","ePWM5 ETSEL");
+    GEL_WatchAdd("*0x591A,x","ePWM5 ETPS");
+    GEL_WatchAdd("*0x591B,x","ePWM5 ETFLG");
+    GEL_WatchAdd("*0x591C,x","ePWM5 ETCLR");
+    GEL_WatchAdd("*0x591D,x","ePWM5 ETFRC");
+    GEL_WatchAdd("*0x591E,x","ePWM5 PCCTL");
+    GEL_WatchAdd("*0x5920,x","ePWM5 HRCNFG");
+}
+hotmenu ePWM6_DualMapped_All_Regs()
+{
+    GEL_WatchAdd("*0x5940,x","ePWM6 TBCTL");
+    GEL_WatchAdd("*0x5941,x","ePWM6 TBSTS");
+    GEL_WatchAdd("*0x5942,x","ePWM6 TBPHSHR");
+    GEL_WatchAdd("*0x5943,x","ePWM6 TBPHS");
+    GEL_WatchAdd("*0x5944,x","ePWM6 TBCTR");
+    GEL_WatchAdd("*0x5945,x","ePWM6 TBPRD");
+    GEL_WatchAdd("*0x5947,x","ePWM6 CMPCTL");
+    GEL_WatchAdd("*0x5948,x","ePWM6 CMPAHR");
+    GEL_WatchAdd("*0x5949,x","ePWM6 CMPA");
+    GEL_WatchAdd("*0x594A,x","ePWM6 CMPB");
+    GEL_WatchAdd("*0x594B,x","ePWM6 AQCTLA");
+    GEL_WatchAdd("*0x594C,x","ePWM6 AQCTLB");
+    GEL_WatchAdd("*0x594D,x","ePWM6 AQSFRC");
+    GEL_WatchAdd("*0x594E,x","ePWM6 AQCSFRC");
+    GEL_WatchAdd("*0x594F,x","ePWM6 DBCTL");
+    GEL_WatchAdd("*0x5950,x","ePWM6 DBRED");
+    GEL_WatchAdd("*0x5951,x","ePWM6 DBFED");
+    GEL_WatchAdd("*0x5952,x","ePWM6 TZSEL");
+    GEL_WatchAdd("*0x5953,x","ePWM6 TZDCSEL");
+    GEL_WatchAdd("*0x5954,x","ePWM6 TZCTL");
+    GEL_WatchAdd("*0x5955,x","ePWM6 TZEINT");
+    GEL_WatchAdd("*0x5956,x","ePWM6 TZFLG");
+    GEL_WatchAdd("*0x5957,x","ePWM6 TZCLR");
+    GEL_WatchAdd("*0x5958,x","ePWM6 TZFRC");
+    GEL_WatchAdd("*0x5959,x","ePWM6 ETSEL");
+    GEL_WatchAdd("*0x595A,x","ePWM6 ETPS");
+    GEL_WatchAdd("*0x595B,x","ePWM6 ETFLG");
+    GEL_WatchAdd("*0x595C,x","ePWM6 ETCLR");
+    GEL_WatchAdd("*0x595D,x","ePWM6 ETFRC");
+    GEL_WatchAdd("*0x595E,x","ePWM6 PCCTL");
+    GEL_WatchAdd("*0x5960,x","ePWM6 HRCNFG");
+
+}
+
