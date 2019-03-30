@@ -51,6 +51,7 @@ for t = 0:deltaT:16
         if on 
             for i = 1:6
                 point(i,num) = 1*sin(2*pi*sinT/10) + AngleInit(i);
+%                   point(i,num) = 1*sinT + AngleInit(i);
                 cubicAddPoint(i,point(i,num));
             end
 		% 关闭控制时添加上次期望点
@@ -87,3 +88,16 @@ xlabel('time(s)')
 ylabel('angle(rad)')
 title('关节1期望轨迹与实际规划轨迹曲线')
 legend('规划轨迹','期望轨迹')
+
+figure;
+v = diff(Joint(1,:));
+a = diff(v);
+aa = diff(a);
+subplot(2,2,1);
+plot(Joint(1,:));
+subplot(2,2,2);
+plot(v);
+subplot(2,2,3);
+plot(a);
+subplot(2,2,4);
+plot(aa);

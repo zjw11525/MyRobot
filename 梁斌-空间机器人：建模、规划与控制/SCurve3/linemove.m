@@ -4,7 +4,7 @@ function Theta = linemove(Start,End,V,A)
 % clear;
 % close all;
 %%
-N = 50;
+N = 2000;
 %% 1
 ThetaStart = Start;
 ThetaEnd = End;
@@ -103,7 +103,14 @@ end
 % ylabel('s');
 % figure;
 figure(1);
-plot(t,sd);
+subplot(2,2,1);
+plot(s);
+subplot(2,2,2);
+plot(sd);
+subplot(2,2,3);
+plot(sdd);
+subplot(2,2,4);
+plot(diff(sdd));
 hold on;
 % legend('s的一阶导数');
 % xlabel('t');

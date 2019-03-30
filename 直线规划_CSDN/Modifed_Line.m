@@ -28,6 +28,24 @@ trans = [
     0  0  0     1 ];
 %终点
 T2 = trans*RobotPose;
+
+% T = ctraj(T1,T2,50);
+% for i = 1:50
+%     s(i) = -(T(3,4,i)-0.6297);
+% end
+
+% v = diff(s);
+% a = diff(v);
+% aa = diff(a);
+% subplot(2,2,1)
+% plot(s);
+% subplot(2,2,2)
+% plot(v);
+% subplot(2,2,3)
+% plot(a);
+% subplot(2,2,4)
+% plot(aa);
+
 Q_Mid = Ikine_Step(T2,Q_last);%反解
 %平移
 trans = [

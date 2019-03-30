@@ -1,0 +1,512 @@
+<robot
+  name="Test_Link6">
+
+  <link
+    name="Link1">
+    <inertial>
+      <origin
+        xyz="-0.0194690222590367 -0.000269188119329776 0.0669003838868867"
+        rpy="0 0 0" />
+      <mass
+        value="0.0359279497811904" />
+      <inertia
+        ixx="1.42651124467996E-06"
+        ixy="-1.14697563287263E-06"
+        ixz="-3.07542768744618E-07"
+        iyy="3.37719865668805E-05"
+        iyz="-6.42463475712563E-08"
+        izz="3.50345845627506E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 1.5707963267949" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1.0 0.42353 0.03921 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+
+  <joint
+    name="joint1"
+    type="revolute">
+    <origin
+      xyz="0 0 0.263"
+      rpy="-1.5707963267949 -6.12303176911189E-17 0" />
+    <parent
+      link="Link1" />
+    <child
+      link="Link2" />
+    <axis
+      xyz="0 1 0" />
+    <dynamics damping="0.7"/>
+    <limit effort="100.0" velocity="0.5" lower="-2.9670597" upper="-2.9670597" />
+  </joint>
+
+
+  <link
+    name="Link2">
+    <inertial>
+      <origin
+        xyz="-3.54756695346284E-05 -0.375038997269737 -6.2497952556459E-05"
+        rpy="0 0 0" />
+      <mass
+        value="0.0135840143314738" />
+      <inertia
+        ixx="1.71441330392907E-07"
+        ixy="-1.8930226497111E-08"
+        ixz="3.0114102826793E-11"
+        iyy="1.07101367382291E-07"
+        iyz="-7.04442535269447E-08"
+        izz="1.08566587869789E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1.0 0.42353 0.03921 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+
+  <joint
+    name="joint2"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 -1.3684555315672E-48" /> <!-- 3.14159265358979 -->
+    <parent
+      link="Link2" />
+    <child
+      link="Link3" />
+    <axis
+      xyz="1 0 0" />
+    <limit effort="100.0" velocity="0.5" lower="-1.91986218" upper="1.91986218" />
+  </joint>
+
+
+  <link
+    name="Link3">
+    <inertial>
+      <origin
+        xyz="-0.0506443388040006 -0.143798658237929 3.89335646279565E-06"
+        rpy="0 0 0" />
+      <mass
+        value="0.0152772138642927" />
+      <inertia
+        ixx="4.68068924117627E-06"
+        ixy="7.98526082139994E-06"
+        ixz="-2.06034030837181E-09"
+        iyy="4.58027248821472E-05"
+        iyz="2.21053702695254E-09"
+        izz="5.02747299380165E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1.0 0.42353 0.03921 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link3.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  
+  <joint
+    name="joint3"
+    type="revolute">
+    <origin
+      xyz="0 -0.35 0"
+      rpy="3.14159265358979 0 -1.3684555315672E-48" /> <!-- -3.14159265358979 -->
+    <parent
+      link="Link3" />
+    <child
+      link="Link4" />
+    <axis
+      xyz="1 0 0" />
+  <limit effort="100.0" velocity="0.5" lower="-3.83972435" upper="0.6981217" />
+  </joint>
+
+ 
+  <link
+    name="Link4">
+    <inertial>
+      <origin
+        xyz="0.000783677794492111 -0.0105511175519905 -0.013415824980232"
+        rpy="0 0 0" />
+      <mass
+        value="0.0111977399013796" />
+      <inertia
+        ixx="5.99354901063005E-07"
+        ixy="3.49796424921298E-09"
+        ixz="-1.22041059156177E-08"
+        iyy="4.72381590639246E-07"
+        iyz="-1.46686325373655E-08"
+        izz="1.71988766823068E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1.0 0.42353 0.03921 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link4.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint
+    name="joint4"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="0 1.5707963267949 0" />
+    <parent
+      link="Link4" />
+    <child
+      link="Link5" />
+    <axis
+      xyz="1 0 0" />
+  <limit effort="100.0" velocity="0.5" lower="-3.228859116" upper="3.228859116" />
+  </joint>
+
+
+  <link
+    name="Link5">
+    <inertial>
+      <origin
+        xyz="0.2048774145243 0.613531054308674 0.00764519285380588"
+        rpy="0 0 0" />
+      <mass
+        value="0.00827986908835877" />
+      <inertia
+        ixx="3.66480511595762E-06"
+        ixy="-2.06280153156517E-07"
+        ixz="-2.54017991426406E-06"
+        iyy="3.01128562811849E-05"
+        iyz="-4.02736041541151E-08"
+        izz="2.67548825608441E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 -0.613 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link5.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1.0 0.42353 0.03921 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link5.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+
+  <joint
+    name="joint5"
+    type="revolute">
+    <origin
+      xyz="0.349 0 0"
+      rpy="1.49011611938477E-08 1.5707963267949 0" /> 
+    <parent
+      link = "Link5" />
+    <child
+      link = "Link6" />
+    <axis
+      xyz = "1 0 0" />
+  <limit effort="100.0" velocity="0.5" lower="-2.18166156" upper="2.18166156" />
+  </joint>
+
+
+  <link
+    name="Link6">
+    <inertial>
+      <origin
+        xyz="0.00579159804548861 -5.00490621480054E-06 0.0701365648415718"
+        rpy="0 0 0" />
+      <mass
+        value="0.00179749006476744" />
+      <inertia
+        ixx="2.79825957341424E-07"
+        ixy="1.46648732121811E-12"
+        ixz="-2.39079156784003E-08"
+        iyy="2.82244602149235E-07"
+        iyz="1.9990144473869E-11"
+        izz="3.09650629968848E-09" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 -0.052"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link6.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1.0 0.42353 0.03921 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_robotics/meshes/Link6.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+
+  <!-- Joint between Link6 and TOP -->
+  <joint name="joint6" type="revolute">
+    <parent link="Link6"/>
+    <child link="Top_Link"/>
+    <origin xyz="0 0 -0.045" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="100.0" velocity="0.5" lower="-6.28" upper="6.28" />
+  </joint>
+
+  <!-- Top_Link -->
+  <link name="Top_Link">
+  <inertial>
+      <mass
+        value="0.001" />
+      <inertia
+        ixx="1"
+        ixy="0"
+        ixz="0"
+        iyy="1"
+        iyz="0"
+        izz="1" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.001" rpy="0 0 0"/>
+      <geometry>
+	<box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1.0 0.42353 0.03921 1.0" />
+      </material>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0.001" rpy="0 0 0"/>
+      <geometry>
+	<box size="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+
+<!-- gripper -->
+
+  <joint name="left_gripper_joint" type="revolute">
+    <parent link="Top_Link"/>
+    <child link="left_gripper"/>
+    <origin xyz="0 0 0.11" rpy="0 -1.57 0"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="30.0" lower="-0.548" upper="0.0" velocity="0.1"/>
+  </joint>
+
+  <link name="left_gripper">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ros_robotics/meshes/l_finger.dae"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass
+        value="0.001" />
+      <inertia
+        ixx="1"
+        ixy="0"
+        ixz="0"
+        iyy="1"
+        iyz="0"
+        izz="1" />
+    </inertial>
+  </link>
+
+  <joint name="left_tip_joint" type="fixed">
+    <parent link="left_gripper"/>
+    <child link="left_tip"/>
+  </joint>
+
+  <link name="left_tip">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.09137 0.00495 0"/>
+      <geometry>
+        <mesh filename="package://ros_robotics/meshes/l_finger_tip.dae"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </collision>
+        <inertial>
+      <mass
+        value="0.001" />
+      <inertia
+        ixx="1"
+        ixy="0"
+        ixz="0"
+        iyy="1"
+        iyz="0"
+        izz="1" />
+    </inertial>
+  </link>
+
+  <joint name="right_gripper_joint" type="revolute">
+    <parent link="Top_Link"/>
+    <child link="right_gripper"/>
+    <origin xyz="0 0 0.11" rpy="0 -1.57 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="30.0" lower="-0.548" upper="0.0" velocity="0.1"/>
+  </joint>
+
+  <link name="right_gripper">
+    <visual>
+      <origin rpy="3.1415 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ros_robotics/meshes/l_finger.dae"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </collision>
+        <inertial>
+      <mass
+        value="0.001" />
+      <inertia
+        ixx="1"
+        ixy="0"
+        ixz="0"
+        iyy="1"
+        iyz="0"
+        izz="1" />
+    </inertial>
+  </link>
+
+  <joint name="right_tip_joint" type="fixed">
+    <parent link="right_gripper"/>
+    <child link="right_tip"/>
+  </joint>
+
+  <link name="right_tip">
+    <visual>
+      <origin rpy="-3.1415 0 0" xyz="0.09137 0.00495 0"/>
+      <geometry>
+        <mesh filename="package://ros_robotics/meshes/l_finger_tip.dae"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </collision>
+        <inertial>
+      <mass
+        value="0.001" />
+      <inertia
+        ixx="1"
+        ixy="0"
+        ixz="0"
+        iyy="1"
+        iyz="0"
+        izz="1" />
+    </inertial>
+  </link>
+
+
+</robot>

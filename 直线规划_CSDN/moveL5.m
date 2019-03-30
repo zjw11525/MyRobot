@@ -25,6 +25,15 @@ figure(1);
 % plot(t,q,'r'),xlabel('t'),ylabel('position');hold on;plot(t_array,q_array,'o','color','g'),grid on;
 % plot(t,v,'b'),xlabel('t'),ylabel('velocity');hold on;plot(t_array,v_array,'*','color','y'),grid on;
 % plot(t,a,'g'),xlabel('t'),ylabel('accelerate');hold on;plot(t_array,a_array,'^','color','r'),grid on;
+v = -diff(q);
+a = diff(v);
+aa= diff(a); 
+
+subplot(3,1,1);
 plot(v);
+subplot(3,1,2);
+plot(a);
+subplot(3,1,3);
+plot(aa);
 hold on;
 Q = q;
