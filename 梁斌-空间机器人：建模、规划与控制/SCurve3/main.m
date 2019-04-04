@@ -23,18 +23,40 @@ Angle_Last = Q_zero + [0,90,0,0,0,0];
 pose_start = Fkine_Final(Q_zero)%正解
 
 %平移
-trans = [1  0  0  0.2;
-         0  1  0  0.2;
-         0  0  1 -0.2;
+trans = [1  0  0  0.1;
+         0  1  0 -0.2;
+         0  0  1 -0.3;
          0  0  0  1;];
-pose_end = trans*pose_start;
+pose_end = trans*pose_start
+
+%库函数
+% N = 50;
+% T=ctraj(pose_start,pose_end,50);
+% x(1,:) = T(1,4,:);
+% y(1,:) = T(2,4,:);
+% z(1,:) = T(3,4,:);
+% plot3(x,y,z,'r'),xlabel('x'),ylabel('y'),zlabel('z'),hold on,plot3(x,y,z,'o','color','g'),grid on;
 
 
-x = linemove(pose_start(1,4),pose_end(1,4),0.2,0.3);
-y = linemove(pose_start(2,4),pose_end(2,4),0.2,0.3);
-z = linemove(pose_start(3,4),pose_end(3,4),0.2,0.3);
+v = 0.1;%运动速度0.1m/s
+a = 0.03;%加速度 0.01接近三角函数
+t = 0.1;%插补周期10ms（plc周期）
+L = sqrt(trans(1,4)^2 + trans(2,4)^2 + trans(3,4)^2);%distance
+N = ceil(L/(v*t)) + 1;%插补数量
 
-for i = 1:2000
+s = linemove(0,1,v,a,N);
+
+for i = 1:N
+x(i) = pose_start(1,4) + trans(1,4)*s(i);
+y(i) = pose_start(2,4) + trans(2,4)*s(i);
+z(i) = pose_start(3,4) + trans(3,4)*s(i);
+end
+
+
+figure(2);
+% plot3(x,y,z,'r'),xlabel('x'),ylabel('y'),zlabel('z'),hold on,plot3(x,y,z,'o','color','g'),grid on;
+
+for i = 1:N
     pose_end(1,4) = x(i);
     pose_end(2,4) = y(i);
     pose_end(3,4) = z(i);
@@ -43,16 +65,26 @@ end
 
 figure(2);
 for i = 1:6
-plot(q(:,i));
+v = diff(q(:,i));
+a = diff(v);
+aa = diff(a);
+
+subplot(2,2,1),plot(q(:,i));
+hold on;
+subplot(2,2,2),plot(v);
+hold on;
+subplot(2,2,3),plot(a);
+hold on;
+subplot(2,2,4),plot(aa);
 hold on;
 end
 
 figure(3);
-plot3(x(1,:),y(1,:),z(1,:),'color',[1,0,0],'LineWidth',2);
+% plot3(x(1,:),y(1,:),z(1,:),'color',[1,0,0],'LineWidth',2);
+plot3(x,y,z,'r'),xlabel('x'),ylabel('y'),zlabel('z'),hold on,plot3(x,y,z,'o','color','g'),grid on;
+q1 = zeros(N,8);%位置-->各关节为弧度值,8个单独关节运动.
 
-q1 = zeros(2000,8);%位置-->各关节为弧度值,8个单独关节运动.
-
-for i = 1:2000
+for i = 1:N
 %     q(i,:) = q(i,:).*[-pi/180,-pi/180,-pi/180,pi/180,pi/180,pi/180];
     q(i,:) = q(i,:).*[pi/180,pi/180,pi/180,pi/180,pi/180,pi/180];
     robot.plot(q(i,:));

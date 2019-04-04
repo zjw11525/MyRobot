@@ -1,10 +1,10 @@
-function Theta = linemove(Start,End,V,A)
+function Theta = linemove(Start,End,V,A,Num)
 %% ×ÔÊÊÓ¦SÇúÏß
 % clc;
 % clear;
 % close all;
 %%
-N = 2000;
+N = Num;
 %% 1
 ThetaStart = Start;
 ThetaEnd = End;

@@ -44,14 +44,14 @@ end
 on = 1;
 num = 1;
 %总规划时间
-for t = 0:deltaT:16
+for t = 0:deltaT:1
 	% 如果需要则往规划器添加期望点
     while cubic(1).needNextPoint
 		% 开启控制时添加正弦运动曲线点
         if on 
             for i = 1:6
-                point(i,num) = 1*sin(2*pi*sinT/10) + AngleInit(i);
-%                   point(i,num) = 1*sinT + AngleInit(i);
+%                 point(i,num) = 1*sin(2*pi*sinT) + AngleInit(i);                
+                point(i,num) = exp(num) + AngleInit(i);
                 cubicAddPoint(i,point(i,num));
             end
 		% 关闭控制时添加上次期望点
@@ -70,7 +70,7 @@ for t = 0:deltaT:16
     end
     index = index + 1;
 	% 如果时间大于15s则停止运动控制
-    if t>15
+    if t>1
         on = 0;
     end
 end
