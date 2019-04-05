@@ -102,16 +102,20 @@ end
 % xlabel('t');
 % ylabel('s');
 % figure;
-figure(1);
-subplot(2,2,1);
-plot(s);
-subplot(2,2,2);
-plot(sd);
-subplot(2,2,3);
-plot(sdd);
-subplot(2,2,4);
-plot(diff(sdd));
-hold on;
+
+
+% figure(1);
+% subplot(2,2,1);
+% plot(s);
+% subplot(2,2,2);
+% plot(sd);
+% subplot(2,2,3);
+% plot(sdd);
+% subplot(2,2,4);
+% plot(diff(sdd));
+% hold on;
+
+
 % legend('s的一阶导数');
 % xlabel('t');
 % ylabel('s的一阶导数');

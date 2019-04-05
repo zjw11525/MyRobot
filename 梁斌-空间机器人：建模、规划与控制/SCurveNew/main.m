@@ -105,8 +105,8 @@ end
 
 figure(3);
 plot3(x(1,:),y(1,:),z(1,:),'color',[1,0,0],'LineWidth',2);
-hold on;
-plot3(x(1,:),y(1,:),z(1,:),'o','color','g'),grid on;
+% hold on;
+% plot3(x(1,:),y(1,:),z(1,:),'o','color','g'),grid on;
 
 q1 = zeros(length(q),8);%位置-->各关节为弧度值,8个单独关节运动.
 

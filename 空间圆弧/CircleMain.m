@@ -1,14 +1,6 @@
-clc;
-clear;
-p1 = [0,0,0];
-p2 = [1,0.7,0];
-p3 = [2,0,0];
-[pc,r] = CircleCenter(p1,p2,p3);
-sumStep = 100;%插补数量
+function p_i = CircleMain(p1,p2,p3,v_l,a_l,t)
 
-v = 0.1;%运动速度0.1m/s
-a = 0.03;%加速度 0.01接近三角函数
-s = linemove(0,1,v,a,sumStep);
+[pc,r] = CircleCenter(p1,p2,p3);
 
 % 建立圆弧坐标系
 % 计算转换矩阵
@@ -39,18 +31,31 @@ else
     theta12 = atan2(q2(2),q2(1));
 end
 
+
+% v = 0.1;%运动速度0.1m/s
+% a = 0.03;%加速度 0.01接近三角函数
+% t = 0.01;%插补周期10ms（plc周期）
+L = theta13*r;%distance
+N = ceil(L/(v_l*t)) + 1;%插补数量
+
+sumStep = N;%插补数量
+s = linemove(0,1,v_l,a_l,sumStep);
+
 % 轨迹插补
 for count = 1:sumStep
-    p_i(:,count) = T*[r*cos(s(count)*theta13) r*sin(s(count)*theta13) 0 1]';
+    p(:,count) = T*[r*cos(s(count)*theta13) r*sin(s(count)*theta13) 0 1]';
 end
-count =1;
+p_i = zeros(3,N);
+p_i = p(1:3,:);
+% count =1;
 %线性
 % for step = 0:theta13/sumStep: theta13
 %     p_i1(:,count) = T*[r*cos(step) r*sin(step) 0 1]';
 %     count = count+1;
 % end
-figure(2);
-plot3(p_i(1,:),p_i(2,:),p_i(3,:),'r'),xlabel('x'),ylabel('y'),zlabel('z'),hold on,plot3(p_i(1,:),p_i(2,:),p_i(3,:),'o','color','g'),grid on;
+% figure(2);
+% plot3(p_i(1,:),p_i(2,:),p_i(3,:),'r'),xlabel('x'),ylabel('y'),zlabel('z'),hold on,plot3(p_i(1,:),p_i(2,:),p_i(3,:),'o','color','g'),grid on;
 % hold on;
 % plot3(p_i1(1,:),p_i1(2,:),p_i1(3,:),'r'),xlabel('x'),ylabel('y'),zlabel('z'),hold on,plot3(p_i1(1,:),p_i1(2,:),p_i1(3,:),'o','color','r'),grid on;
-axis([0 2 0 2]);
+
+

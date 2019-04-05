@@ -24,7 +24,7 @@ pose_start = Fkine_Final(Q_zero)%正解
 
 %平移
 trans = [1  0  0  0.1;
-         0  1  0 -0.2;
+         0  1  0  0.2;
          0  0  1 -0.3;
          0  0  0  1;];
 pose_end = trans*pose_start
@@ -40,7 +40,7 @@ pose_end = trans*pose_start
 
 v = 0.1;%运动速度0.1m/s
 a = 0.03;%加速度 0.01接近三角函数
-t = 0.1;%插补周期10ms（plc周期）
+t = 0.01;%插补周期10ms（plc周期）
 L = sqrt(trans(1,4)^2 + trans(2,4)^2 + trans(3,4)^2);%distance
 N = ceil(L/(v*t)) + 1;%插补数量
 
@@ -57,10 +57,10 @@ figure(2);
 % plot3(x,y,z,'r'),xlabel('x'),ylabel('y'),zlabel('z'),hold on,plot3(x,y,z,'o','color','g'),grid on;
 
 for i = 1:N
-    pose_end(1,4) = x(i);
-    pose_end(2,4) = y(i);
-    pose_end(3,4) = z(i);
-    q(i,:) = Ikine_Step(pose_end,Q_zero);%反解
+    pose_start(1,4) = x(i);
+    pose_start(2,4) = y(i);
+    pose_start(3,4) = z(i);
+    q(i,:) = Ikine_Step(pose_start,Q_zero);%反解
 end
 
 figure(2);
@@ -80,8 +80,8 @@ hold on;
 end
 
 figure(3);
-% plot3(x(1,:),y(1,:),z(1,:),'color',[1,0,0],'LineWidth',2);
-plot3(x,y,z,'r'),xlabel('x'),ylabel('y'),zlabel('z'),hold on,plot3(x,y,z,'o','color','g'),grid on;
+plot3(x(1,:),y(1,:),z(1,:),'color',[1,0,0],'LineWidth',2);
+% plot3(x,y,z,'r'),xlabel('x'),ylabel('y'),zlabel('z'),hold on,plot3(x,y,z,'o','color','g'),grid on;
 q1 = zeros(N,8);%位置-->各关节为弧度值,8个单独关节运动.
 
 for i = 1:N
