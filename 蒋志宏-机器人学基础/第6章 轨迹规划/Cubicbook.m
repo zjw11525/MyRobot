@@ -51,7 +51,7 @@ for t = 0:deltaT:1
         if on 
             for i = 1:6
 %                 point(i,num) = 1*sin(2*pi*sinT) + AngleInit(i);                
-                point(i,num) = exp(num) + AngleInit(i);
+                point(i,num) = num + AngleInit(i);
                 cubicAddPoint(i,point(i,num));
             end
 		% 关闭控制时添加上次期望点

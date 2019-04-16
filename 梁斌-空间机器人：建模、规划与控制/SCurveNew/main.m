@@ -16,12 +16,12 @@ robot=SerialLink([SL1 SL2 SL3 SL4 SL5 SL6],'name','SD700E');
 % robot.Gravity = [0 0 -9.80];%重力方向设置
 
 
-Q_zero = [0,0,0,0,90,0];%底座 -> 抓手
+Q_zero = [0,90,0,0,0,00];%底座 -> 抓手
 % robot.jacob0(Q_zero)
 
 Angle_Last = Q_zero + [0,90,0,0,0,0];
 pose_start = Fkine_Final(Q_zero)%正解
-
+a = Ikine_Step(pose_start,Angle_Last)
 %平移
 trans = [1  0  0  0.2;
          0  1  0  0.2;

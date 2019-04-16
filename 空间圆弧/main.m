@@ -32,7 +32,7 @@ pose_end = trans*pose_start
 
 v = 0.1;%运动速度0.1m/s
 a = 0.03;%加速度 0.01接近三角函数
-t = 0.1;%插补周期10ms（plc周期）
+t = 0.002;%插补周期10ms（plc周期）
 L = sqrt(trans(1,4)^2 + trans(2,4)^2 + trans(3,4)^2);%distance
 N = ceil(L/(v*t)) + 1;%插补数量
 
@@ -66,13 +66,37 @@ trajectory = [line,qCircle,qCircle2];
 plot3(trajectory(1,:),trajectory(2,:),trajectory(3,:),'r'),xlabel('x'),ylabel('y'),zlabel('z'),hold on;
 plot3(trajectory(1,:),trajectory(2,:),trajectory(3,:),'o','color','g'),grid on;
 
+% 减速比
+Ratio1 = 121;
+Ratio2 = 160.68;
+Ratio3 = 101.81;
+Ratio4 = 99.69;
+Ratio5 = 64.56;
+Ratio6 = 49.99;
+
+Ratio = [Ratio1, Ratio2, Ratio3, Ratio4, Ratio5, Ratio6];
 
 for i = 1:length(trajectory)
     pose_start(1,4) = trajectory(1,i);
     pose_start(2,4) = trajectory(2,i);
     pose_start(3,4) = trajectory(3,i);
     q(i,:) = Ikine_Step(pose_start,Q_zero);%反解
+    qout(i,:) = q(i,:).*Ratio / 2; 
+    qout(i,:) = qout(i,:) .* [1 1 1 1 -1 -1];
 end
+
+Sizefont = 30;
+xlabel('X (m)','FontSize',Sizefont,'FontName','Times New Roman');
+ylabel('Y (m)','FontSize',Sizefont,'FontName','Times New Roman');
+zlabel('Z (m)','FontSize',Sizefont,'FontName','Times New Roman');
+grid on 
+format short;
+%输出文件
+Pos = roundn(qout,-4);
+T=table(Pos);
+fid = fopen('Pos.txt','wt+');
+fprintf(fid,'%-8.4f,%-8.4f,%-8.4f,%-8.4f,%-8.4f,%-8.4f,\n',Pos.');
+writetable(T,'Pos.csv');
 
 figure(2);
 for i = 1:6
@@ -118,9 +142,8 @@ for i = 1:length(trajectory)
 %     end
 end
 
-
 aviobj=VideoWriter('example.avi');
-aviobj.FrameRate=10;%set FrameRate before open it
+aviobj.FrameRate=30;%set FrameRate before open it
 open(aviobj);
 
 for i = 1:length(trajectory)   
@@ -139,3 +162,5 @@ for i = 1:length(trajectory)
     writeVideo(aviobj,MOV);
 end
 close(aviobj)
+
+

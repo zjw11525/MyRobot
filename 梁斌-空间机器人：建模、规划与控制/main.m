@@ -24,7 +24,7 @@ robot1 = SerialLink([SL1 SL2 SL3 SL4 SL5 SL6],'name','standard');
 % daspect([1 1 1]);%控制沿每个轴的数据单位长度,要在所有方向上采用相同的数据单位长度，使用 [1 1 1] 
 
 
-Q_zero1 = [0,0,0,0,90,0];%底座 -> 抓手
+Q_zero1 = [10,20,30,40,90,50];%底座 -> 抓手
 Angle_Last = Q_zero1 + [0,90,0,0,0,0];
 p1 = Fkine_Final(Q_zero1)%正解
 %平移
