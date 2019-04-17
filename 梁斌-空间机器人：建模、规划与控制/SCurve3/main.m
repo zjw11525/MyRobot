@@ -44,7 +44,7 @@ t = 0.01;%插补周期10ms（plc周期）
 L = sqrt(trans(1,4)^2 + trans(2,4)^2 + trans(3,4)^2);%distance
 N = ceil(L/(v*t)) + 1;%插补数量
 
-s = linemove(0,1,v,a,N);
+s = linemove(0,1,v,a,1000);
 
 for i = 1:N
 x(i) = pose_start(1,4) + trans(1,4)*s(i);
