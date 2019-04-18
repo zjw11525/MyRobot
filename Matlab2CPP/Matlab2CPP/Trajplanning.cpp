@@ -6,7 +6,7 @@ Trajplanning::Trajplanning() {}
 //析构
 Trajplanning::~Trajplanning()
 {
-	cout << "Deleting Trajplanning object..." << endl;
+	//cout << "Deleting Trajplanning object..." << endl;
 }
 
 vector<double> Trajplanning::ScurveGen(double Start, double End, double Velocity, double Acceleration, int Num)
@@ -118,4 +118,24 @@ double Trajplanning::SCurveScaling(double t, double V, double A, double J, vecto
 		s = 1 - s;	
 	}
 	return s;
+}
+
+Array Trajplanning::MoveLine(Array pose_start, Array trans, double Velocity, double Acceleration, double t) 
+{
+	double transx = trans[0][3];
+	double transy = trans[1][3];
+	double transz = trans[2][3];
+	double L = sqrt(pow(transx, 2) + pow(transy, 2) + pow(transz, 2));//运动距离
+	int N = ceil(L / (Velocity*t)) + 1;//计算插补数量
+
+	vector<double> s = ScurveGen(0, 1, Velocity, Acceleration, N);
+	Array Position(3, vector<double>(N, 0));
+
+	for (int i = 0; i < N; i++) 
+	{
+		Position[0][i] = pose_start[0][3] + transx * s[i];
+		Position[1][i] = pose_start[1][3] + transy * s[i];
+		Position[2][i] = pose_start[2][3] + transz * s[i];
+	}
+	return Position;
 }

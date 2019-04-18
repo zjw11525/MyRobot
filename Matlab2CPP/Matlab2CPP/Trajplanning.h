@@ -12,10 +12,11 @@ using namespace std;
 class Trajplanning
 {
 public:
-	Trajplanning();
-	vector<double> ScurveGen(double Start, double End, double Velocity, double Acceleration, int Num);
+	Trajplanning();	
+	Array MoveLine(Array pose_start, Array trans, double Velocity, double Acceleration, double t);
 	~Trajplanning();
 private:
+	vector<double> ScurveGen(double Start, double End, double Velocity, double Acceleration, int Num);
 	double SCurveScaling(double t, double V, double A, double J, vector<double> T, double Tf);
 };
 

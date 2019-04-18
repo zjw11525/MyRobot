@@ -5,7 +5,7 @@ Kinematic::Kinematic() {}
 //Îö¹¹
 Kinematic::~Kinematic()
 {
-	cout << "Deleting Kinematic object..." << endl;
+	//cout << "Deleting Kinematic object..." << endl;
 }
 
 Array Kinematic::Fkine_Step(Theta theta)
