@@ -38,13 +38,13 @@ pose_end = trans*pose_start
 % plot3(x,y,z,'r'),xlabel('x'),ylabel('y'),zlabel('z'),hold on,plot3(x,y,z,'o','color','g'),grid on;
 
 
-v = 0.1;%运动速度0.1m/s
-a = 0.03;%加速度 0.01接近三角函数
-t = 0.01;%插补周期10ms（plc周期）
+v = 0.2;%运动速度0.1m/s
+a = 0.1;%加速度 0.01接近三角函数
+t = 0.001;%插补周期10ms（plc周期）
 L = sqrt(trans(1,4)^2 + trans(2,4)^2 + trans(3,4)^2);%distance
 N = ceil(L/(v*t)) + 1;%插补数量
 
-s = linemove(0,1,v,a,1000);
+s = linemove(0,1,v,a,N);
 
 for i = 1:N
 x(i) = pose_start(1,4) + trans(1,4)*s(i);

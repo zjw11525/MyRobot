@@ -32,7 +32,7 @@ pose_end = trans*pose_start
 
 v = 0.1;%运动速度0.1m/s
 a = 0.03;%加速度 0.01接近三角函数
-t = 0.002;%插补周期10ms（plc周期）
+t = 0.1;%插补周期10ms（plc周期）
 L = sqrt(trans(1,4)^2 + trans(2,4)^2 + trans(3,4)^2);%distance
 N = ceil(L/(v*t)) + 1;%插补数量
 
