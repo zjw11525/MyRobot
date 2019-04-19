@@ -19,11 +19,11 @@ robot=SerialLink([SL1 SL2 SL3 SL4 SL5 SL6],'name','standard');
 Q_zero = [0,0,0,0,90,0];%底座 -> 抓手
 % robot.jacob0(Q_zero)
 
-Angle_Last = Q_zero + [0,90,0,0,0,0];
+Angle_Last = Q_zero + [0,-90,0,0,0,0];
 pose_start = Fkine_Final(Q_zero)%正解
 
 %平移
-trans = [1  0  0  0.1;
+trans = [1  0  0  0.2;
          0  1  0  0.2;
          0  0  1 -0.3;
          0  0  0  1;];
@@ -40,7 +40,7 @@ pose_end = trans*pose_start
 
 v = 0.2;%运动速度0.1m/s
 a = 0.1;%加速度 0.01接近三角函数
-t = 0.001;%插补周期10ms（plc周期）
+t = 0.1;%插补周期10ms（plc周期）
 L = sqrt(trans(1,4)^2 + trans(2,4)^2 + trans(3,4)^2);%distance
 N = ceil(L/(v*t)) + 1;%插补数量
 

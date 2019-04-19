@@ -16,16 +16,16 @@ robot.DataFormat='column';%数据格式为列，row为行；为‘row'时q0要转置-->q0’
 robot.Gravity = [0 0 -9.80];%重力方向设置
 
 
-Q_zero = [0,0,0,0,90,0];%底座 -> 抓手
+Q_zero = [10,-20,50,0,0,0];%底座 -> 抓手
 % robot.jacob0(Q_zero)
 
-Angle_Last = Q_zero + [0,90,0,0,0,0];
+Angle_Last = Q_zero + [0,0,0,0,0,0];
 pose_start = Fkine_Final(Q_zero)%正解
-
+aa = Ikine_Step(pose_start,Angle_Last)
 %平移
 trans = [1  0  0  0.2;
          0  1  0  0.2;
-         0  0  1 -0.4;
+         0  0  1 -0.3;
          0  0  0  1;];
 pose_end = trans*pose_start
 

@@ -14,18 +14,18 @@ int main()
 	Trajplanning traj;
 
 
-	double angle[6] = { 0,0,0,0,90,0 };
-
+	double angle[6] = { 10,0,30,40,0,60 };
 	for (int i = 0; i < 6; i++) angle[i] *= (PI / 180.0);
+
 	Theta Angle_Now(angle, angle + 6);
 	Theta Angle_Last(angle, angle + 6);
-	Angle_Last[1] = Angle_Last[1] + PI / 2;
 
 	Array T;
 
 	Theta angleout(6, 0);
 
 	T = kine.Fkine_Step(Angle_Now);
+
 	Array T1(T);
 	T1[0][3] = 0.2;
 	T1[1][3] = 0.2;
@@ -33,21 +33,19 @@ int main()
 
 	Array Pos = traj.MoveLine(T, T1, 0.2, 0.1, 0.001);
 
-for(int j = 0;j<10;j++){
 	LARGE_INTEGER t1, t2, tc;
 	QueryPerformanceFrequency(&tc);
 	QueryPerformanceCounter(&t1);
 
 	//traj.MoveLine(T, T1, 0.2, 0.1, 0.001);
 	//Array Angleout(size(Pos[0]),vector<double>(6,0));
-	for (int i = 0; i < 1000; i++)
-	{
+
 	//	T1[0][3] = Pos[0][i];
 	//	T1[1][3] = Pos[1][i];
 	//	T1[2][3] = Pos[2][i];
-		angleout = kine.Ikine_Step(T1, Angle_Last);
+		angleout = kine.Ikine_Step(T, Angle_Last);
 	//	Angleout[i] = angleout;
-	}
+	
 
 
 	QueryPerformanceCounter(&t2);
@@ -57,10 +55,9 @@ for(int j = 0;j<10;j++){
 	//}
 	printf("\n  Total Time:%f ms\n", \
 		(t2.QuadPart - t1.QuadPart)*1000.0 / tc.QuadPart);
-}
-	//cout << size(Pos[0]);
 
-	/*for (int i = 0; i < 4; i++)
+
+	for (int i = 0; i < 4; i++)
 	{
 		for (int j = 0; j < 4; j++)
 		{
@@ -80,7 +77,7 @@ for(int j = 0;j<10;j++){
 		if (angleout[i] < 0 && -angleout[i] < 1e-10)
 			angleout[i] = 0;
 		cout << angleout[i] * 180 / PI << endl;
-	}*/
+	}
 }
 	//vector<int> a(2, 1);//a(有2个int,所有int的初值)
 	//vector<vector<int>> array(2,vector<int>(2,1));//array(有2个vector,vector中初值是vector<int>(2,1))

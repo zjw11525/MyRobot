@@ -186,7 +186,7 @@ Theta Kinematic::Ikine_Step(Array T, Theta Angle_Last)
 			/*	error = abs(Angle[i][0] - Angle_Last[0]) / 5.9341 + abs(Angle[i][1] - Angle_Last[1]) / 3.8397 +
 					abs(Angle[i][2] - Angle_Last[2]) / 4.5379 + abs(Angle[i][3] - Angle_Last[3]) / 6.2832 +
 					abs(Angle[i][4] - Angle_Last[4]) / 4.3633 + abs(Angle[i][5] - Angle_Last[5]) / 6.2832;*/
-			error = abs(Angle[i][0] - Angle_Last[0]) * 0.1685 + abs(Angle[i][1] - Angle_Last[1]) * 0.2604 +
+			error = abs(Angle[i][0] - Angle_Last[0]) * 0.1685 + abs(Angle[i][1] - (Angle_Last[1] - 1.5708)) * 0.2604 +
 				abs(Angle[i][2] - Angle_Last[2]) * 0.2204 + abs(Angle[i][3] - Angle_Last[3]) * 0.1592 +
 				abs(Angle[i][4] - Angle_Last[4]) * 0.2292 + abs(Angle[i][5] - Angle_Last[5]) * 0.1592;
 			if (i == 0)
