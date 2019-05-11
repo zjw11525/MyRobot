@@ -1,2 +1,10 @@
-﻿  Matlab2CPP.cpp
-  Matlab2CPP.vcxproj -> C:\Users\Administrator\Desktop\MyRobot\Matlab2CPP\x64\Debug\Matlab2CPP.exe
+﻿  pch.cpp
+  Kinematic.cpp
+  Matlab2CPP.cpp
+  Trajplanning.cpp
+c:\users\administrator\desktop\myrobot\matlab2cpp\matlab2cpp\trajplanning.cpp(129): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+  正在生成代码...
+Matlab2CPP.obj : error LNK2019: 无法解析的外部符号 AdsPortOpen，该符号在函数 main 中被引用
+Matlab2CPP.obj : error LNK2019: 无法解析的外部符号 AdsGetLocalAddress，该符号在函数 main 中被引用
+TcAdsDll.lib : warning LNK4272: 库计算机类型“x86”与目标计算机类型“x64”冲突
+C:\Users\Administrator\Desktop\MyRobot\Matlab2CPP\x64\Debug\Matlab2CPP.exe : fatal error LNK1120: 2 个无法解析的外部命令

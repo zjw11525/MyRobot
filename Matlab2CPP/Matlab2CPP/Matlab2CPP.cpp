@@ -6,15 +6,24 @@
 #include <Windows.h>
 #include "Kinematic.h"
 
-using namespace std;
+long nErr;
+long nPort;
+AmsAddr Addr;
+PAmsAddr pAddr;
 
+using namespace std;
+	//pAddr = &Addr;
+	//nPort = AdsPortOpen();
+	//nErr = AdsGetLocalAddress(pAddr);
+	//pAddr->port = 851;
 int main()
 {
 	Kinematic kine;//new一个对象
 	Trajplanning traj;
 
+	double Ratio[6] = { 49.99, 64.56, 99.69, 101.81, 160.68, 121.0 };//抓手->底座
 
-	double angle[6] = { 10,0,30,40,0,60 };
+	double angle[6] = { 0,0,0,0,90,0 };
 	for (int i = 0; i < 6; i++) angle[i] *= (PI / 180.0);
 
 	Theta Angle_Now(angle, angle + 6);
@@ -28,34 +37,35 @@ int main()
 
 	Array T1(T);
 	T1[0][3] = 0.2;
-	T1[1][3] = 0.2;
+	T1[1][3] = -0.2;
 	T1[2][3] = -0.3;
 
-	Array Pos = traj.MoveLine(T, T1, 0.2, 0.1, 0.001);
-
+	//Array Pos = traj.MoveLine(T, T1, 0.2, 0.1, 0.001);
+	//Array Pos2Angle(size(Pos[0]),vector<double>(6,0));
+	//for (int i = 0; i < size(Pos[0]); i++) 
+	//{
+	//	T1[0][3] = Pos[0][i];
+	//	T1[1][3] = Pos[1][i];
+	//	T1[2][3] = Pos[2][i];
+	//	Pos2Angle[i] = kine.Ikine_Step(T1, Angle_Last);
+	//}
+	
 	LARGE_INTEGER t1, t2, tc;
 	QueryPerformanceFrequency(&tc);
 	QueryPerformanceCounter(&t1);
 
-	//traj.MoveLine(T, T1, 0.2, 0.1, 0.001);
+	traj.MoveLine(T, T1, 0.2, 0.1, 0.001);
 	//Array Angleout(size(Pos[0]),vector<double>(6,0));
 
-	//	T1[0][3] = Pos[0][i];
-	//	T1[1][3] = Pos[1][i];
-	//	T1[2][3] = Pos[2][i];
-		angleout = kine.Ikine_Step(T, Angle_Last);
-	//	Angleout[i] = angleout;
-	
-
-
 	QueryPerformanceCounter(&t2);
+	printf("\n  Total Time:%f ms\n", \
+		(t2.QuadPart - t1.QuadPart)*1000.0 / tc.QuadPart);
+
+
 	//for (int i = 0; i < size(Pos[0]); i++)
 	//{
 	//	cout << Pos[0][i] << ",  " << Pos[1][i] << ",  " << Pos[2][i] << endl;
 	//}
-	printf("\n  Total Time:%f ms\n", \
-		(t2.QuadPart - t1.QuadPart)*1000.0 / tc.QuadPart);
-
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -87,3 +97,12 @@ int main()
 	//double B = 0.3501;
 	//double A = 0.3497;
 	//double D = atan2(B, A)*180/PI;
+
+
+
+
+//ULONG     lHdlVar;
+//char   szVar[] = { "GVL.ExtPos[0]" };
+//nErr = AdsSyncReadWriteReq(pAddr, ADSIGRP_SYM_HNDBYNAME, 0x0, sizeof(lHdlVar), &lHdlVar, sizeof(szVar), szVar);
+//nErr = AdsSyncWriteReq(pAddr, ADSIGRP_SYM_VALBYHND, lHdlVar, 8, ExtPos);
+//nErr = AdsSyncWriteReq(pAddr, ADSIGRP_SYM_RELEASEHND, 0, sizeof(lHdlVar), &lHdlVar);
