@@ -5,10 +5,6 @@ clc
 clear all
 close all
 
-% 运动学约束
-Cv = 0.5;
-Ca = 1;
-Cj = 2;
 
 % 减速比
 Ratio1 = 121;
@@ -36,7 +32,10 @@ Pose_End(3,4) = 0.5297;%z 下
 %Pose_End(2,4) = 0.2;%y 右
 
 
-
+% 运动学约束
+Cv = 5;
+Ca = 8;
+Cj = 2;
 
 
 % Pose_End(3,4) = 0.4297;%z%% 自适应规划
@@ -46,6 +45,20 @@ Vset = Cv;
 T1 = MoveL(Cv, Ca, Cj, Pose_Start, Pose_End, Vs, Ve, Vset);
 
 Num = length(T1);
+for i = 1:Num
+x(i) = T1(1,4,i);
+y(i) = T1(2,4,i);
+z(i) = T1(3,4,i);
+end
+% figure(1);
+% plot3(x,y,z,'o');
+% figure(2);
+subplot(3,1,1);
+plot(z);
+subplot(3,1,2);
+plot(diff(-z));
+subplot(3,1,3);
+plot(diff(diff(-z)));
 
 Distance = zeros(6, Num);
 PulseNum = zeros(6, Num);

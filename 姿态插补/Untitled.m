@@ -11,23 +11,41 @@ SL6=Link([0       0.0745      0              0           0     ],'standard');
 SL2.offset = -pi/2;
 robot=SerialLink([SL1 SL2 SL3 SL4 SL5 SL6],'name','standard');
 % 计算插补点数
-Q_zero = [0,0,0,0,0,0];%底座 -> 抓手
+Q_zero = [-90,0,0,0,0,0];%底座 -> 抓手
 Angle_Last = Q_zero;
 pose_start = Fkine_Step(Q_zero)%正解
 %平移
 trans = [1  0  0  0;
          0  1  0  0;
-         0  0  1  -0.4;
+         0  0  1  0;
          0  0  0  1;];
 pose_end = trans*pose_start
+% j=1;
+% for i = -1623:8:2304 
+%     a(j)=i;j=j+1; 
+% end
+% a = a';
+% format short;
+% %输出文件
+% a = roundn(a,-4);
+% T=table(a);
+% fid = fopen('Pos.txt','wt+');
+% fprintf(fid,'%f,\n',a);
+% writetable(T,'Pos.csv');
 
+%最大速度V=0.59
 v = 0.2;%运动速度0.1m/s
-a = 0.2;%加速度 0.01接近三角函数
-t = 0.001;%插补周期10ms（plc周期）
+t = 0.001;%插补周期1ms（plc周期）
 L = sqrt(trans(1,4)^2 + trans(2,4)^2 + trans(3,4)^2);%distance
-N = ceil(L/(v*t));%插补数量
+% N = ceil(L/(v*t));%插补数量
 
-s = trilinemove(v,a,N,t);
+N=2000;
+
+ta = 0.5;%加减速时间0.5s
+
+
+% s1 = linemove(0,1,v,a,N+1);
+s = trilinemove(v,ta,N,t);
 
 for i = 1:N
 x(i) = pose_start(1,4) + trans(1,4)*s(i);
@@ -40,7 +58,7 @@ stepNum = N;
 %判断路径,取路径短的，不影响方向
 %欧拉角转四元数
 EulerAngleStart = [0,0,0];
-EulerAngleEnd = [0/180*pi,90/180*pi,0/180*pi];
+EulerAngleEnd = [20/180*pi,20/180*pi,20/180*pi];
 p1_Q =  angle2quat(EulerAngleStart(1),EulerAngleStart(2),EulerAngleStart(3));
 p3_Q =  angle2quat(EulerAngleEnd(1),EulerAngleEnd(2),EulerAngleEnd(3));
 
@@ -49,8 +67,8 @@ if cosa < 0
     p3_Q = -p3_Q;
 end
 
-pt_Q = zeros(4,stepNum+1);
-AngleOut = zeros(3,stepNum+1);
+pt_Q = zeros(4,stepNum);
+AngleOut = zeros(3,stepNum);
 sina = sqrt(1 - cosa*cosa);
 angle = atan2( sina, cosa );
 
@@ -77,27 +95,80 @@ for i = 1:stepNum
 end
 
 
-figure(1);
+figure(2);
 qplot(:,:) = qout(1,:,:);
 for i = 1:6 
+    subplot(3,1,2);
     plot(diff(qplot(i,:)));
     hold on;
 end
 
-figure(2);
 qplot(:,:) = qout(1,:,:);
 for i = 1:6 
+    subplot(3,1,3);
+    plot(diff(diff(qplot(i,:))));
+    hold on;
+end
+qplot(:,:) = qout(1,:,:);
+for i = 1:6 
+    subplot(3,1,1);
     plot(qplot(i,:));    
     hold on;
 end
 
-figure(3);
-for i = 1:stepNum 
-
-end
-% for i = 1:stepNum 
-%     qout(:,:,i) = qout(:,:,i).*[pi/180,pi/180,pi/180,pi/180,pi/180,pi/180];
-%     robot.plot(qout(:,:,i));
+% 减速比
+% Ratio1 = 121;
+% Ratio2 = 160.68;
+% Ratio3 = 101.81;
+% Ratio4 = 99.69;
+% Ratio5 = 64.56;
+% Ratio6 = 49.99;
+% 
+% Ratio = [Ratio1,Ratio2,Ratio3,Ratio4,Ratio5,Ratio6];
+% 
+% for i = 1:length(qplot)
+%     qout1(i,:) = qplot(:,i)'.*Ratio / 2; 
+%     qout1(i,:) = qout1(i,:) .* [1 1 1 1 -1 -1];
 % end
+% 
+% 
+% format short;
+% %输出文件
+% Pos = roundn(qout1,-4);
+% T=table(Pos);
+% fid = fopen('Pos.txt','wt+');
+% fprintf(fid,'%-8.4f,%-8.4f,%-8.4f,%-8.4f,%-8.4f,%-8.4f,\n',Pos.');
+% writetable(T,'Pos.csv');
+
+figure(3);
+
+plot3(x,y,z,'g'),xlabel('x'),ylabel('y'),zlabel('z'),hold on;
+axis([-1 1 -1 1 -1 1]);%坐标范围
+hold on;
+% plot3(x,y,z,'o','color','g'),grid on;
+for i = 1:stepNum 
+X=[x(i) x(i) x(i)]';
+Y=[y(i) y(i) y(i)]';
+Z=[z(i) z(i) z(i)]';
+
+U=[T(1,1,i) T(1,2,i),T(1,3,i)]';
+V=[T(2,1,i) T(2,2,i),T(2,3,i)]';
+W=[T(3,1,i) T(3,2,i),T(3,3,i)]';
+
+if i==1
+quiver3(X,Y,Z,U,V,W,0.2,'r');
+else
+    if i==stepNum
+    quiver3(X,Y,Z,U,V,W,0.2,'r');
+    else
+        quiver3(X,Y,Z,U,V,W,0.1,'b');
+    end
+end
+end
+
+for i = 1:stepNum 
+    qout(:,:,i) = qout(:,:,i).*[pi/180,pi/180,pi/180,pi/180,pi/180,pi/180];
+    robot.plot(qout(:,:,i));
+end
 
 

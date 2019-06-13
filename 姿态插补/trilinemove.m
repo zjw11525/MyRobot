@@ -1,4 +1,4 @@
-function s = trilinemove(Vm,Am,Num,Step)
+function s = trilinemove(Vm,Ta,Num,Step)
 % clc;
 % clear all;
 
@@ -6,6 +6,8 @@ function s = trilinemove(Vm,Am,Num,Step)
 % Vm = 0.2;
 % Am = 0.5;
 % Step = 0.001;
+
+Am = Vm/(2*Ta);
 
 te = Num*Step;%total time
 t1 = Vm/(2*Am);%acceleration time
@@ -68,12 +70,15 @@ for t = 0:Step:te
     j=j+1;
 end
 figure(1);
-subplot(2,2,1);
+subplot(3,1,1);
 plot(s);
-subplot(2,2,2);
+hold on;
+subplot(3,1,2);
 plot(diff(s));
-subplot(2,2,3);
+hold on;
+subplot(3,1,3);
 plot(diff(diff(s)));
-subplot(2,2,4);
+hold on;
+% subplot(2,2,4);
 end
 

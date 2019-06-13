@@ -104,13 +104,13 @@ end
 % figure;
 
 
-% figure(1);
-% subplot(2,2,1);
-% plot(s);
-% subplot(2,2,2);
-% plot(sd);
-% subplot(2,2,3);
-% plot(sdd);
+figure(1);
+subplot(3,1,1);
+plot(s);
+subplot(3,1,2);
+plot(sd);
+subplot(3,1,3);
+plot(sdd);
 % subplot(2,2,4);
 % plot(diff(sdd));
 % hold on;
