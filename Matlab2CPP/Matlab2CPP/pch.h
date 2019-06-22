@@ -12,7 +12,6 @@
 // TODO: 添加要在此处预编译的标头
 #include "Kinematic.h"
 #include "Trajplanning.h"
-#include "C:\TwinCAT\AdsApi\TcAdsDll\Include\TcAdsDef.h" //结构体和常量的声明
-#include "C:\TwinCAT\AdsApi\TcAdsDll\Include\TcAdsAPI.h"
+
 
 #endif //PCH_H

@@ -1,2 +1,4 @@
 ﻿  Matlab2CPP.cpp
+C:\Users\Administrator\Desktop\MyRobot\Matlab2CPP\Matlab2CPP\Matlab2CPP.cpp(38,20): warning C4018:  “<”: 有符号/无符号不匹配
+C:\Users\Administrator\Desktop\MyRobot\Matlab2CPP\Matlab2CPP\Matlab2CPP.cpp(61,20): warning C4018:  “<”: 有符号/无符号不匹配
   Matlab2CPP.vcxproj -> C:\Users\Administrator\Desktop\MyRobot\Matlab2CPP\Debug\Matlab2CPP.exe

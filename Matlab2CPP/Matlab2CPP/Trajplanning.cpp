@@ -9,6 +9,49 @@ Trajplanning::~Trajplanning()
 	//cout << "Deleting Trajplanning object..." << endl;
 }
 
+vector<double> Trajplanning::SineGen(double Velocity, double AccelerationTime, int Num, double Step)
+{
+	if (AccelerationTime / Step * 2 > Num)
+		AccelerationTime = Num / 2 * Step; //约束
+	
+	double Acceleration = Velocity / (2 * AccelerationTime / Step);
+
+	double t1 = ceil(AccelerationTime / Step); //acceleration
+	double t2 = ceil(Num - t1); //deceleration
+
+	double w1 = Acceleration * t1 * t1;//加速段位移
+	double w2 = Velocity * (t2 - t1); //减速段位移
+	double all = 2 * w1 + w2; //总位移
+	
+	vector<double> s(Num, 0);
+	double s1 = 0;
+	double s2 = 0;
+
+	for (int t = 0; t < Num; t++) 
+	{
+		if (t <= t1) 
+		{
+			s[t] = Acceleration * (t - sin(t / t1 * PI) * t1 / PI) * t1 / all; // % w = 1 / t1
+			s1 = s[t];
+			s2 = s1;		
+		}
+	
+		if ((t > t1) && (t <= t2)) 
+		{
+			s[t] = s1 + Velocity * (t - t1) / all;
+			s2 = s[t];		
+		}
+
+
+		if (t > t2) 
+		{
+			s[t] = s2 + Acceleration * ((t - t2) + sin((t - t2) / t1 * PI) * t1 / PI) * t1 / all;
+		}
+	}
+
+	return s;
+}
+
 vector<double> Trajplanning::ScurveGen(double Start, double End, double Velocity, double Acceleration, int Num)
 {
 	int N = Num;
@@ -120,15 +163,16 @@ double Trajplanning::SCurveScaling(double t, double V, double A, double J, vecto
 	return s;
 }
 
-Array Trajplanning::MoveLine(Array pose_start, Array trans, double Velocity, double Acceleration, double t) 
+Array Trajplanning::MoveLine(Array pose_start, Array trans, double Velocity, double AccelerationTime, double t) 
 {
 	double transx = trans[0][3];
 	double transy = trans[1][3];
 	double transz = trans[2][3];
 	double L = sqrt(pow(transx, 2) + pow(transy, 2) + pow(transz, 2));//运动距离
-	int N = ceil(L / (Velocity*t)) + 1;//计算插补数量
+	int N = ceil(L / (Velocity*t));//计算插补数量
 
-	vector<double> s = ScurveGen(0, 1, Velocity, Acceleration, N);
+	//vector<double> s = ScurveGen(0, 1, Velocity, Acceleration, N);
+	vector<double> s = SineGen(Velocity, AccelerationTime, N, t);
 	Array Position(3, vector<double>(N, 0));
 
 	for (int i = 0; i < N; i++) 
@@ -138,4 +182,47 @@ Array Trajplanning::MoveLine(Array pose_start, Array trans, double Velocity, dou
 		Position[2][i] = pose_start[2][3] + transz * s[i];
 	}
 	return Position;
+}
+
+Array Trajplanning::CartesianMove(double PositionX, double PositionY, double PositionZ, Theta Q_Start, double Velocity, double AccelerationTime, double t, double AnglePitch, double AngleYaw)
+{
+	Kinematic kine;//new一个对象
+	double q_zero[6] = { 0, 0, 0, 0, 90, 0 };
+	q_zero[4] = AnglePitch;
+	q_zero[5] = AngleYaw;
+	for (int i = 0; i < 6; i++) q_zero[i] *= (PI / 180.0);
+
+	Theta Q_zero(q_zero,q_zero+6); //底座->抓手
+	Theta Angle_Last = Q_zero;
+
+	Array pose_start = kine.Fkine_Step(Q_zero); //正解
+	Array pose_end = pose_start;
+	//位置
+	pose_end[0][3] = PositionX;//0.3;
+	pose_end[1][3] = PositionY;//-0.5;
+	pose_end[2][3] = PositionZ;//0.2;
+	double xtrans = pose_end[0][3] - pose_start[0][3];
+	double ytrans = pose_end[1][3] - pose_start[1][3];
+	double ztrans = pose_end[2][3] - pose_start[2][3];
+
+	Theta Q_End = kine.Ikine_Step(pose_end, Q_zero);
+	for (int i = 0; i < 6; i++) Q_End[i] *= (180.0 / PI);
+
+	double L = sqrt(pow(xtrans,2) + pow(ytrans,2) + pow(ztrans,2)); //distance
+	int N = ceil(L / (Velocity * t));//计算插补数量
+	vector<double> s = SineGen(Velocity, AccelerationTime, N, t);;
+
+	Array qout(6, vector<double>(N, 0));
+
+	for (int i = 0; i < N; i++) 
+	{
+		qout[0][i] = Q_Start[0] + (Q_End[0] - Q_Start[0]) * s[i];
+		qout[1][i] = Q_Start[1] + (Q_End[1] - Q_Start[1]) * s[i];
+		qout[2][i] = Q_Start[2] + (Q_End[2] - Q_Start[2]) * s[i];
+		qout[3][i] = Q_Start[3] + (Q_End[3] - Q_Start[3]) * s[i];
+		qout[4][i] = Q_Start[4] + (Q_End[4] - Q_Start[4]) * s[i];
+		qout[5][i] = Q_Start[5] + (Q_End[5] - Q_Start[5]) * s[i];
+	}
+
+	return qout;
 }

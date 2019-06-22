@@ -6,16 +6,9 @@
 #include <Windows.h>
 #include "Kinematic.h"
 
-long nErr;
-long nPort;
-AmsAddr Addr;
-PAmsAddr pAddr;
 
 using namespace std;
-	//pAddr = &Addr;
-	//nPort = AdsPortOpen();
-	//nErr = AdsGetLocalAddress(pAddr);
-	//pAddr->port = 851;
+
 int main()
 {
 	Kinematic kine;//new一个对象
@@ -40,34 +33,42 @@ int main()
 	T1[1][3] = -0.2;
 	T1[2][3] = -0.3;
 
-	//Array Pos = traj.MoveLine(T, T1, 0.2, 0.1, 0.001);
-	//Array Pos2Angle(size(Pos[0]),vector<double>(6,0));
-	//for (int i = 0; i < size(Pos[0]); i++) 
-	//{
-	//	T1[0][3] = Pos[0][i];
-	//	T1[1][3] = Pos[1][i];
-	//	T1[2][3] = Pos[2][i];
-	//	Pos2Angle[i] = kine.Ikine_Step(T1, Angle_Last);
-	//}
-	
+	Array Pos = traj.MoveLine(T, T1, 0.2, 0.1, 0.001);
+	Array Pos2Angle(size(Pos[0]),vector<double>(6,0));
+	for (int i = 0; i < size(Pos[0]); i++) 
+	{
+		T1[0][3] = Pos[0][i];
+		T1[1][3] = Pos[1][i];
+		T1[2][3] = Pos[2][i];
+		Pos2Angle[i] = kine.Ikine_Step(T1, Angle_Last);
+	}
+
+	double q_start[6] = { 0,0,0,0,0,0 };
+	Theta Q_Start(q_start, q_start + 6);
+
 	LARGE_INTEGER t1, t2, tc;
 	QueryPerformanceFrequency(&tc);
 	QueryPerformanceCounter(&t1);
 
-	traj.MoveLine(T, T1, 0.2, 0.1, 0.001);
+	//Array s = traj.MoveLine(T, T1, 0.2, 0.5, 0.001);
 	//Array Angleout(size(Pos[0]),vector<double>(6,0));
-
+	//vector<double> s  = traj.SineGen(0.2, 0.5, 5000, 0.001);
+	Array s = traj.CartesianMove(0, 0.5, 0.3, Q_Start, 0.2, 0.5, 0.001);
 	QueryPerformanceCounter(&t2);
 	printf("\n  Total Time:%f ms\n", \
 		(t2.QuadPart - t1.QuadPart)*1000.0 / tc.QuadPart);
 
+	for (int i = 0; i < size(s[0]); i++) 
+	{
+		cout << s[0][i] <<","<< s[1][i] << "," << s[2][i] << "," << s[3][i] << "," << s[4][i] << "," << s[5][i] <<endl;
+	}
 
 	//for (int i = 0; i < size(Pos[0]); i++)
 	//{
 	//	cout << Pos[0][i] << ",  " << Pos[1][i] << ",  " << Pos[2][i] << endl;
 	//}
 
-	for (int i = 0; i < 4; i++)
+	/*for (int i = 0; i < 4; i++)
 	{
 		for (int j = 0; j < 4; j++)
 		{
@@ -87,7 +88,7 @@ int main()
 		if (angleout[i] < 0 && -angleout[i] < 1e-10)
 			angleout[i] = 0;
 		cout << angleout[i] * 180 / PI << endl;
-	}
+	}*/
 }
 	//vector<int> a(2, 1);//a(有2个int,所有int的初值)
 	//vector<vector<int>> array(2,vector<int>(2,1));//array(有2个vector,vector中初值是vector<int>(2,1))
