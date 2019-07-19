@@ -44,14 +44,13 @@ end
 on = 1;
 num = 1;
 %总规划时间
-for t = 0:deltaT:1
+for t = 0:deltaT:16
 	% 如果需要则往规划器添加期望点
     while cubic(1).needNextPoint
 		% 开启控制时添加正弦运动曲线点
         if on 
             for i = 1:6
-%                 point(i,num) = 1*sin(2*pi*sinT) + AngleInit(i);                
-                point(i,num) = num + AngleInit(i);
+                point(i,num) = 1*sin(2*pi*sinT/10) + AngleInit(i);
                 cubicAddPoint(i,point(i,num));
             end
 		% 关闭控制时添加上次期望点
@@ -70,14 +69,14 @@ for t = 0:deltaT:1
     end
     index = index + 1;
 	% 如果时间大于15s则停止运动控制
-    if t>1
+    if t>15
         on = 0;
     end
 end
 % 绘制1关节的规划与期望轨迹
 time = 0:(index-2);
 time= time*deltaT;
-plot(time,Joint(1,:),'b-')
+plot(time,Joint(1,:),'b.')
 grid on 
 hold on
 time = 0:(num-2);
@@ -88,16 +87,3 @@ xlabel('time(s)')
 ylabel('angle(rad)')
 title('关节1期望轨迹与实际规划轨迹曲线')
 legend('规划轨迹','期望轨迹')
-
-figure;
-v = diff(Joint(1,:));
-a = diff(v);
-aa = diff(a);
-subplot(2,2,1);
-plot(Joint(1,:));
-subplot(2,2,2);
-plot(v);
-subplot(2,2,3);
-plot(a);
-subplot(2,2,4);
-plot(aa);
